@@ -223,7 +223,7 @@ export default function PubxStudioPage() {
   
   // --- Model Settings ---
   const [provider, setProvider] = useState<"openai" | "gemini" | "claude">("claude");
-  const [model, setModel] = useState("claude-4-sonnet-latest");
+  const [model, setModel] = useState("claude-3-5-sonnet-latest");
   const [moeOverride, setMoeOverride] = useState<boolean | null>(null);
 
   // --- RAG Materials ---
@@ -1207,7 +1207,7 @@ export default function PubxStudioPage() {
                     if (fetched && fetched.length > 0) {
                       setModel(fetched[0].id);
                     } else {
-                      setModel(p === "claude" ? "claude-4-sonnet-latest" : p === "openai" ? "gpt-4o" : "gemini-1.5-pro");
+                      setModel(p === "claude" ? "claude-3-5-sonnet-latest" : p === "openai" ? "gpt-4o" : "gemini-1.5-pro");
                     }
                   }}
                   style={{ width: "100%", padding: "10px 12px", border: "1.5px solid var(--border-main)", borderRadius: 6, background: "var(--bg-input)", color: "var(--text-heading)", fontSize: 13, outline: "none" }}
@@ -1235,8 +1235,8 @@ export default function PubxStudioPage() {
                     <>
                       {provider === "claude" && (
                         <>
-                          <option value="claude-4-sonnet-latest">Claude 4 Sonnet</option>
-                          <option value="claude-4-haiku-latest">Claude 4 Haiku</option>
+                          <option value="claude-3-5-sonnet-latest">Claude 3.5 Sonnet</option>
+                          <option value="claude-3-5-haiku-latest">Claude 3.5 Haiku</option>
                           <option value="claude-3-opus-20240229">Claude 3 Opus</option>
                         </>
                       )}

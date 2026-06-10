@@ -98,7 +98,7 @@ export async function callLLM(options: {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: model || "claude-4-sonnet-latest",
+        model: model || "claude-3-5-sonnet-latest",
         max_tokens: 4000,
         system: systemPrompt,
         messages: [{ role: "user", content: formattedContent }],
@@ -219,7 +219,7 @@ Your SVGs are visually stunning:
   try {
     const rawSvg = await callLLM({
       provider,
-      model: model || (provider === "openai" ? "gpt-4o-mini" : provider === "gemini" ? "gemini-1.5-flash" : "claude-4-sonnet-latest"),
+      model: model || (provider === "openai" ? "gpt-4o-mini" : provider === "gemini" ? "gemini-1.5-flash" : "claude-3-5-sonnet-latest"),
       apiKey,
       systemPrompt,
       userPrompt,
@@ -286,7 +286,7 @@ Rules:
   try {
     return await callLLM({
       provider,
-      model: model || (provider === "openai" ? "gpt-4o-mini" : provider === "gemini" ? "gemini-1.5-flash" : "claude-4-sonnet-latest"),
+      model: model || (provider === "openai" ? "gpt-4o-mini" : provider === "gemini" ? "gemini-1.5-flash" : "claude-3-5-sonnet-latest"),
       apiKey,
       systemPrompt,
       userPrompt: `Audit and fully optimize this generated copy to perfect standards:\n\n${content}`,
@@ -523,7 +523,7 @@ Rules:
   try {
     return await callLLM({
       provider,
-      model: model || (provider === "openai" ? "gpt-4o-mini" : provider === "gemini" ? "gemini-1.5-flash" : "claude-4-sonnet-latest"),
+      model: model || (provider === "openai" ? "gpt-4o-mini" : provider === "gemini" ? "gemini-1.5-flash" : "claude-3-5-sonnet-latest"),
       apiKey,
       systemPrompt,
       userPrompt: `Optimize the following content block for SEO focusing on the keyword phrase "${focusKeyphrase}":\n\n${content}`,
