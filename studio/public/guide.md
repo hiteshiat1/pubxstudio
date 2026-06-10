@@ -107,3 +107,13 @@ Follow this 5-minute step-by-step sample to publish a premium *AI & ML* thought 
 3. Open `⚙ Settings & Keys` to confirm LinkedIn, Twitter, or Substack status states report as **Connected** in the relocated Live Dashboard.
 4. Under the LinkedIn post preview, click **Publish LinkedIn**!
 5. **Result**: A success indicator lights up green, delivering a custom success toast and a dynamic direct link to your live published article bundle under `published/[slug]/`!
+
+⚠️ **Manual Publishing Fallback & Troubleshooting**:
+If you encounter any API connectivity issues, network failures, or if your developer access tokens expire:
+*   **One-Click Clipboard Copy**: You can always use the **Copy Clipboard** button on any of the platform tabs (LinkedIn, Twitter, Substack, Medium, SEO) to copy the formatted text.
+*   **Manual Paste**: Paste the copied content directly into the native interfaces of your social networks or editor dashboards.
+*   **Unified Local Output Folder**: For every run, the Studio compiles a clean output package folder under `published/[slug]/` containing:
+    *   `article.mdx` — The core markdown file.
+    *   `platforms/` — Individual platform text assets (e.g., `linkedin.md`, `substack.md`, `twitter.md`).
+    *   `images/` — RAG-based context diagrams and graphics.
+    You can drag and upload these assets directly to your platforms as needed.
