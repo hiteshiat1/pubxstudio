@@ -354,126 +354,126 @@ export default function LandingPage() {
           🚀 Setup & Installation
         </h2>
 
-        {/* Tab Controls */}
+        {/* Simplified Two-Option Layout */}
         <div style={{
-          display: "flex",
-          borderBottom: "1px solid var(--border-main)",
-          marginBottom: "24px"
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: "24px",
+          marginBottom: "32px"
         }}>
-          <button
-            onClick={() => setActiveTab("pwa")}
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              borderBottom: activeTab === "pwa" ? "2px solid #5AB9FF" : "none",
-              color: activeTab === "pwa" ? "#5AB9FF" : "var(--text-muted)",
-              padding: "12px",
-              cursor: "pointer",
-              fontWeight: activeTab === "pwa" ? "bold" : "normal",
-              fontFamily: "var(--font-jetbrains, monospace)"
-            }}
-          >
-            PWA Installation
-          </button>
-          <button
-            onClick={() => setActiveTab("local")}
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              borderBottom: activeTab === "local" ? "2px solid #5AB9FF" : "none",
-              color: activeTab === "local" ? "#5AB9FF" : "var(--text-muted)",
-              padding: "12px",
-              cursor: "pointer",
-              fontWeight: activeTab === "local" ? "bold" : "normal",
-              fontFamily: "var(--font-jetbrains, monospace)"
-            }}
-          >
-            Local Launcher
-          </button>
-          <button
-            onClick={() => setActiveTab("vercel")}
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              borderBottom: activeTab === "vercel" ? "2px solid #5AB9FF" : "none",
-              color: activeTab === "vercel" ? "#5AB9FF" : "var(--text-muted)",
-              padding: "12px",
-              cursor: "pointer",
-              fontWeight: activeTab === "vercel" ? "bold" : "normal",
-              fontFamily: "var(--font-jetbrains, monospace)"
-            }}
-          >
-            Deploy to Vercel
-          </button>
+          {/* Option 1: Chrome App PWA */}
+          <div style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-main)",
+            borderRadius: "12px",
+            padding: "30px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between"
+          }}>
+            <div>
+              <h3 style={{ margin: "0 0 16px 0", color: "var(--text-heading)", display: "flex", alignItems: "center", gap: 8 }}>
+                <span>🖥️</span> 1. Install as Chrome App
+              </h3>
+              <p style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--text-muted)", margin: "0 0 16px 0" }}>
+                Run PubxStudio in a dedicated standalone app window. It integrates directly with your desktop dock, system applications list, and supports quick launches.
+              </p>
+              <ul style={{ paddingLeft: "20px", fontSize: "12px", lineHeight: "1.7", color: "var(--text-main)", margin: 0 }}>
+                <li><strong>Desktop (Chrome/Edge)</strong>: Click the install icon (📥) in the right side of the address bar.</li>
+                <li><strong>Mobile (iOS Safari)</strong>: Tap the Share button and select <strong>Add to Home Screen</strong>.</li>
+                <li><strong>Mobile (Android Chrome)</strong>: Tap settings and choose <strong>Install App</strong>.</li>
+              </ul>
+            </div>
+            
+            {isInstallable && (
+              <button
+                onClick={handleInstallPWA}
+                style={{
+                  marginTop: "20px",
+                  background: "#5AB9FF",
+                  border: "none",
+                  borderRadius: "6px",
+                  color: "#080808",
+                  padding: "12px 20px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                  width: "100%",
+                  textAlign: "center"
+                }}
+              >
+                📥 INSTALL NOW
+              </button>
+            )}
+          </div>
+
+          {/* Option 2: Launch Direct URL */}
+          <div style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-main)",
+            borderRadius: "12px",
+            padding: "30px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between"
+          }}>
+            <div>
+              <h3 style={{ margin: "0 0 16px 0", color: "var(--text-heading)", display: "flex", alignItems: "center", gap: 8 }}>
+                <span>🌐</span> 2. Launch Directly from URL
+              </h3>
+              <p style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--text-muted)", margin: "0 0 16px 0" }}>
+                Access the full dashboard suite directly in your browser tab without any installation required.
+              </p>
+              <div style={{
+                background: "#060606",
+                border: "1px solid var(--border-main)",
+                padding: "12px",
+                borderRadius: "6px",
+                color: "#5AB9FF",
+                fontSize: "12px",
+                wordBreak: "break-all",
+                marginBottom: "16px"
+              }}>
+                https://pubxstudio-alphav1.vercel.app/studio
+              </div>
+            </div>
+
+            <a
+              href="/studio"
+              style={{
+                display: "block",
+                textAlign: "center",
+                background: "linear-gradient(135deg, #5AB9FF 0%, #8D6CFF 100%)",
+                borderRadius: "6px",
+                color: "#ffffff",
+                padding: "12px 20px",
+                textDecoration: "none",
+                fontWeight: "bold",
+                fontSize: "12px"
+              }}
+            >
+              LAUNCH STUDIO CONSOLE →
+            </a>
+          </div>
         </div>
 
-        {/* Tab Contents */}
-        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)", borderRadius: "12px", padding: "30px" }}>
-          {activeTab === "pwa" && (
-            <div>
-              <h3 style={{ margin: "0 0 16px 0", color: "var(--text-heading)" }}>📱 Install as a Progressive Web App</h3>
-              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "var(--text-muted)" }}>
-                Run PubxStudio like a native app on your phone, tablet, or laptop window. It integrates directly with your OS dock, menu search, and offline capabilities.
-              </p>
-              <ul style={{ paddingLeft: "20px", fontSize: "13px", lineHeight: "1.8", color: "var(--text-main)" }}>
-                <li><strong>Mobile (iOS)</strong>: Open this URL in Safari, click <strong>Share</strong>, and choose <strong>Add to Home Screen</strong>.</li>
-                <li><strong>Mobile (Android)</strong>: Open in Chrome, click the menu button, and click <strong>Install App</strong>.</li>
-                <li><strong>Desktop (Chrome/Edge)</strong>: Click the install icon in the URL search bar.</li>
-              </ul>
-              {isInstallable && (
-                <button
-                  onClick={handleInstallPWA}
-                  style={{
-                    marginTop: "16px",
-                    background: "#5AB9FF",
-                    border: "none",
-                    borderRadius: "6px",
-                    color: "#080808",
-                    padding: "10px 20px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    fontSize: "12px"
-                  }}
-                >
-                  📥 INSTALL CURRENT INSTANCE
-                </button>
-              )}
-            </div>
-          )}
-
-          {activeTab === "local" && (
-            <div>
-              <h3 style={{ margin: "0 0 16px 0", color: "var(--text-heading)" }}>💻 Run Locally with Native Launchers</h3>
-              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "var(--text-muted)" }}>
-                Ensure maximum control, local persistence output, and native execution with cross-platform scripts.
-              </p>
-              <h4 style={{ color: "var(--text-heading)", margin: "16px 0 8px 0", fontSize: "14px" }}>Linux / macOS</h4>
-              <pre style={{ background: "#060606", border: "1px solid var(--border-main)", padding: "12px", borderRadius: "6px", color: "#A8FFB2", fontSize: "12px", overflowX: "auto" }}>
-                ./start.sh
-              </pre>
-              <h4 style={{ color: "var(--text-heading)", margin: "16px 0 8px 0", fontSize: "14px" }}>Windows Command Prompt</h4>
-              <pre style={{ background: "#060606", border: "1px solid var(--border-main)", padding: "12px", borderRadius: "6px", color: "#A8FFB2", fontSize: "12px", overflowX: "auto" }}>
-                start.bat
-              </pre>
-            </div>
-          )}
-
-          {activeTab === "vercel" && (
-            <div>
-              <h3 style={{ margin: "0 0 16px 0", color: "var(--text-heading)" }}>☁️ Host on Vercel</h3>
-              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "var(--text-muted)" }}>
-                Host your own secure version in the cloud instantly. No complex database servers are needed since all state is local to each client browser.
-              </p>
-              <ol style={{ paddingLeft: "20px", fontSize: "13px", lineHeight: "1.8", color: "var(--text-main)" }}>
-                <li>Install Vercel CLI globally: <code style={{ color: "#FF5A8A" }}>npm install -g vercel</code></li>
-                <li>Log in to your account: <code style={{ color: "#FF5A8A" }}>vercel login</code></li>
-                <li>From the repository root, deploy: <code style={{ color: "#FF5A8A" }}>vercel</code></li>
-              </ol>
-            </div>
-          )}
+        {/* Storage Warning Banner */}
+        <div style={{
+          background: "rgba(255, 90, 138, 0.05)",
+          border: "1px solid rgba(255, 90, 138, 0.2)",
+          borderRadius: "8px",
+          padding: "20px",
+          color: "var(--text-main)",
+          fontSize: "13px",
+          lineHeight: "1.6"
+        }}>
+          <strong style={{ color: "#FF5A8A", display: "block", marginBottom: "6px" }}>
+            🔒 Privacy & Session Storage Notice:
+          </strong>
+          Nothing is stored on the server side or application backend. All of your API keys, credentials, drafts, and system configurations are saved exclusively within your browser's local sandbox storage ('localStorage'). 
+          <span style={{ display: "block", marginTop: "8px", color: "#FF8FAD", fontWeight: "bold" }}>
+            ⚠️ WARNING: If you clear your browser cache, cookies, or site data, all your credentials and saved configurations will be permanently erased.
+          </span>
         </div>
       </section>
 
