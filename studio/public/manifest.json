@@ -1,0 +1,16 @@
+{
+  "name": "PubxStudio Content Creator",
+  "short_name": "PubxStudio",
+  "description": "Stateless Multi-LLM Content Generation and Publishing Studio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23080808' stroke='%235AFFDB' stroke-width='4'/><text x='50' y='60' font-family='sans-serif' font-size='32' font-weight='bold' fill='%23fff' text-anchor='middle'>P</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
