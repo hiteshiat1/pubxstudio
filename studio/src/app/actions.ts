@@ -63,7 +63,16 @@ export async function callLLM(options: {
   userPrompt: string;
   images?: { mimeType: string; base64: string }[];
 }): Promise<string> {
-  const { provider, model, apiKey, systemPrompt, userPrompt, images = [] } = options;
+  let { provider, model, apiKey, systemPrompt, userPrompt, images = [] } = options;
+
+  // Intercept stale/invalid model names
+  if (provider === "claude") {
+    if (model === "claude-4-sonnet-latest" || !model) {
+      model = "claude-3-5-sonnet-latest";
+    } else if (model === "claude-4-haiku-latest") {
+      model = "claude-3-5-haiku-latest";
+    }
+  }
 
   if (!apiKey || !apiKey.trim()) {
     throw new Error(`API Key for provider "${provider}" is missing. Please configure it in your Settings.`);
@@ -265,7 +274,16 @@ async function runOptimizationAgent(options: {
   apiKey: string;
   model?: string;
 }): Promise<string> {
-  const { category, contentType, content, provider, apiKey, model } = options;
+  let { category, contentType, content, provider, apiKey, model } = options;
+
+  // Intercept stale/invalid model names
+  if (provider === "claude") {
+    if (model === "claude-4-sonnet-latest" || !model) {
+      model = "claude-3-5-sonnet-latest";
+    } else if (model === "claude-4-haiku-latest") {
+      model = "claude-3-5-haiku-latest";
+    }
+  }
   const config = CATEGORIES[category];
 
   let systemPrompt = `You are a premium Editor and Quality Review Agent at PubxStudio.
@@ -315,7 +333,7 @@ export async function runGenerationPipeline(options: {
   attachedImages: { name: string; dataUrl: string }[]; // client side base64 images
   selectedPlatforms: Record<string, boolean>;
 }): Promise<PipelineOutputs> {
-  const {
+  let {
     topic,
     excerpt,
     category,
@@ -330,6 +348,15 @@ export async function runGenerationPipeline(options: {
     attachedImages,
     selectedPlatforms,
   } = options;
+
+  // Intercept stale/invalid model names
+  if (provider === "claude") {
+    if (model === "claude-4-sonnet-latest" || !model) {
+      model = "claude-3-5-sonnet-latest";
+    } else if (model === "claude-4-haiku-latest") {
+      model = "claude-3-5-haiku-latest";
+    }
+  }
 
   const validCategory = (CATEGORIES[category as Category] ? category : "General") as Category;
   const categoryConfig = CATEGORIES[validCategory];
@@ -508,7 +535,16 @@ export async function autoOptimizeSEO(options: {
   apiKey: string;
   model?: string;
 }): Promise<string> {
-  const { content, focusKeyphrase, provider, apiKey, model } = options;
+  let { content, focusKeyphrase, provider, apiKey, model } = options;
+
+  // Intercept stale/invalid model names
+  if (provider === "claude") {
+    if (model === "claude-4-sonnet-latest" || !model) {
+      model = "claude-3-5-sonnet-latest";
+    } else if (model === "claude-4-haiku-latest") {
+      model = "claude-3-5-haiku-latest";
+    }
+  }
 
   const systemPrompt = `You are a professional SEO Copywriter and Optimization Agent at PubxStudio.
 Your task is to refine and rewrite headings, paragraphs, and keyword flow in the provided article content to make it deeply SEO-friendly.
