@@ -874,4 +874,36 @@ export async function fetchDynamicModels(
   return [];
 }
 
+// -------------------------------------------------------------
+// Support Ticket Submission Action
+// -------------------------------------------------------------
+export async function sendSupportTicket(formData: FormData): Promise<{ ok: boolean; message: string }> {
+  try {
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const issue = formData.get("issue") as string;
+    const file = formData.get("attachment") as File | null;
+
+    console.log("========================================");
+    console.log("SUPPORT TICKET SUBMISSION LOG");
+    console.log("Timestamp:", new Date().toISOString());
+    console.log("Name:", name);
+    console.log("Email:", email);
+    console.log("Issue:", issue);
+    if (file && file.size > 0) {
+      console.log("Attachment Name:", file.name);
+      console.log("Attachment Size:", file.size, "bytes");
+      console.log("Attachment Type:", file.type);
+    } else {
+      console.log("No Attachment");
+    }
+    console.log("========================================");
+
+    return { ok: true, message: "Support ticket received and logged on the server." };
+  } catch (err: any) {
+    console.error("Support ticket submission failed:", err);
+    return { ok: false, message: err.message || "Failed to process support ticket." };
+  }
+}
+
 

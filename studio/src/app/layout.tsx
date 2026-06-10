@@ -1,4 +1,5 @@
 import { JetBrains_Mono, DM_Sans, Instrument_Serif } from "next/font/google";
+import ContactWidget from "./components/ContactWidget";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -26,6 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#080808" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -115,6 +119,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body style={{ margin: 0, background: "var(--bg-main)", color: "var(--text-main)", transition: "background-color 0.3s, color 0.3s" }}>
         {children}
+        <ContactWidget />
       </body>
     </html>
   );
