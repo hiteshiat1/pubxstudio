@@ -340,7 +340,17 @@ export default function PubxStudioPage() {
     if (savedConnections) setConnections(JSON.parse(savedConnections));
     if (savedSync) setSyncHistory(JSON.parse(savedSync));
     if (savedProvider) setProvider(JSON.parse(savedProvider));
-    if (savedModel) setModel(savedModel);
+    if (savedModel) {
+      let migratedModel = savedModel;
+      if (savedModel === "claude-4-sonnet-latest") {
+        migratedModel = "claude-3-5-sonnet-latest";
+        localStorage.setItem("pubx_default_model", "claude-3-5-sonnet-latest");
+      } else if (savedModel === "claude-4-haiku-latest") {
+        migratedModel = "claude-3-5-haiku-latest";
+        localStorage.setItem("pubx_default_model", "claude-3-5-haiku-latest");
+      }
+      setModel(migratedModel);
+    }
     if (savedLinkedinTarget) setLinkedinTarget(savedLinkedinTarget as "person" | "organization");
     if (savedPlatforms) {
       try {
