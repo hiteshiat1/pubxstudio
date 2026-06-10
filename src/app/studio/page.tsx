@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  runGenerationPipeline,
   saveOutputBundle,
   directPublishToAccount,
-  autoOptimizeSEO,
   fetchDynamicModels,
 } from "../actions";
+import {
+  runGenerationPipelineClient,
+  callLLMClient,
+} from "../utils/llmClient";
 import { downloadZip } from "../utils/zip";
 import {
   PUBLISHING_PLUGINS,
@@ -201,6 +203,24 @@ export default function PubxStudioPage() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [termsOpen, setTermsOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+
+  // --- Offline Detection (PWA) ---
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const activeTheme = (document.documentElement.getAttribute("data-theme") as "light" | "dark") || "dark";
@@ -568,7 +588,7 @@ export default function PubxStudioPage() {
     }, 3500);
 
     try {
-      const results = await runGenerationPipeline({
+      const results = await runGenerationPipelineClient({
         topic,
         excerpt,
         category,
@@ -748,12 +768,22 @@ export default function PubxStudioPage() {
     setSaveStatus("Optimizing article keyword density and headings...");
     try {
       const originalText = outputs.results["article"] || "";
-      const optimizedText = await autoOptimizeSEO({
-        content: originalText,
-        focusKeyphrase: phrase,
+      const systemPrompt = `You are a professional SEO Copywriter and Optimization Agent at PubxStudio.
+Your task is to refine and rewrite headings, paragraphs, and keyword flow in the provided article content to make it deeply SEO-friendly.
+
+Rules:
+- Increase density of the focus keyphrase: "${phrase}" inside the text (targeting an optimal 1.5% - 2.5% density).
+- Ensure the keyphrase appears naturally in the first 100 words, at least one H2 heading, and naturally in body text.
+- Re-structure headings for clean semantic readability.
+- Maintain formatting, tone, links, code blocks, and the exact MDX structure.
+- Do NOT add any preamble. Output ONLY the optimized markdown text.`;
+
+      const optimizedText = await callLLMClient({
         provider,
-        apiKey: activeApiKey,
         model,
+        apiKey: activeApiKey,
+        systemPrompt,
+        userPrompt: `Optimize the following content block for SEO focusing on the keyword phrase "${phrase}":\n\n${originalText}`,
       });
 
       handleInlineEdit("article", optimizedText);
@@ -961,6 +991,27 @@ export default function PubxStudioPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-main)", color: "var(--text-main)", fontFamily: "var(--font-jetbrains, monospace)", padding: "30px 24px", maxWidth: 1200, margin: "0 auto", boxSizing: "border-box", transition: "background-color 0.3s, color 0.3s" }}>
+      
+      {!isOnline && (
+        <div style={{
+          background: "rgba(255, 90, 138, 0.15)",
+          border: "1px solid #FF5A8A",
+          borderRadius: 8,
+          padding: "12px 16px",
+          color: "#FF5A8A",
+          fontSize: "13px",
+          fontWeight: "bold",
+          marginBottom: 20,
+          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          boxShadow: "0 4px 12px rgba(255, 90, 138, 0.1)"
+        }}>
+          <span>⚠️</span> Offline Mode: API calls will fail until internet connection is restored.
+        </div>
+      )}
       
       {/* Header and settings buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 30 }}>
@@ -1412,10 +1463,10 @@ export default function PubxStudioPage() {
           {/* GENERATE ACTION BUTTON */}
           <button
             onClick={handleGeneratePipeline}
-            disabled={generating || !topic.trim() || !excerpt.trim()}
-            style={{ width: "100%", padding: 16, border: "none", borderRadius: 10, background: generating ? "#1A1A1A" : `linear-gradient(135deg, ${activeColor}, ${activeColor}D0)`, color: generating ? "#555" : "#000", fontFamily: "var(--font-jetbrains, monospace)", fontSize: 14, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", letterSpacing: "0.08em", textTransform: "uppercase", boxShadow: generating ? "none" : `0 4px 20px ${activeColor}20` }}
+            disabled={generating || !isOnline || !topic.trim() || !excerpt.trim()}
+            style={{ width: "100%", padding: 16, border: "none", borderRadius: 10, background: (generating || !isOnline) ? "#1A1A1A" : `linear-gradient(135deg, ${activeColor}, ${activeColor}D0)`, color: (generating || !isOnline) ? "#555" : "#000", fontFamily: "var(--font-jetbrains, monospace)", fontSize: 14, fontWeight: 700, cursor: (generating || !isOnline) ? "not-allowed" : "pointer", letterSpacing: "0.08em", textTransform: "uppercase", boxShadow: (generating || !isOnline) ? "none" : `0 4px 20px ${activeColor}20` }}
           >
-            {generating ? "Executing Engine Agents..." : "Spawn Content Generation Agent →"}
+            {generating ? "Executing Engine Agents..." : !isOnline ? "⚠️ Offline Mode (API Blocked)" : "Spawn Content Generation Agent →"}
           </button>
 
           {/* Progress updates */}
