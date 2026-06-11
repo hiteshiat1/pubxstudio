@@ -8,10 +8,11 @@
     "start": "next start --port 3001"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "next": "16.2.6",
+    "prettier": "^3.8.3",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "prettier": "^3.8.3"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@types/node": "^20",
