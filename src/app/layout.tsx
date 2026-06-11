@@ -1,5 +1,6 @@
 import { JetBrains_Mono, DM_Sans, Instrument_Serif } from "next/font/google";
 import ContactWidget from "./components/ContactWidget";
+import { Analytics } from "@vercel/analytics/next";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -121,6 +122,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0, background: "var(--bg-main)", color: "var(--text-main)", transition: "background-color 0.3s, color 0.3s" }}>
         {children}
         <ContactWidget />
+        <Analytics />
       </body>
     </html>
   );
