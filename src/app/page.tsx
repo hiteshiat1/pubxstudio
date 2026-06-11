@@ -424,23 +424,12 @@ export default function LandingPage() {
               <p style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--text-muted)", margin: "0 0 16px 0" }}>
                 Access the full dashboard suite directly in your browser tab without any installation required.
               </p>
-              <div style={{
-                background: "#060606",
-                border: "1px solid var(--border-main)",
-                padding: "12px",
-                borderRadius: "6px",
-                color: "#5AB9FF",
-                fontSize: "12px",
-                wordBreak: "break-all",
-                marginBottom: "16px"
-              }}>
-                https://pubxstudio-alphav1.vercel.app/studio
-              </div>
             </div>
 
             <a
               href="/studio"
               style={{
+                marginTop: "20px",
                 display: "block",
                 textAlign: "center",
                 background: "linear-gradient(135deg, #5AB9FF 0%, #8D6CFF 100%)",
