@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomBytes, randomUUID } from 'node:crypto';
+import pg from 'pg';
+import { migrate } from './migrate.mjs';
+import { createCredentialStore } from './credentials.mjs';
+
+test('encrypted credentials enforce founder access, lifecycle, and rotation', async (t) => {
+  const url = process.env.PUBX_TEST_DATABASE_URL;
+  if (!url) return t.skip('Set PUBX_TEST_DATABASE_URL to a disposable PostgreSQL database');
+  const schema = `pubx_test_${randomUUID().replaceAll('-', '')}`;
+  const client = new pg.Client({ connectionString: url });
+  await client.connect();
+  try {
+    await client.query(`CREATE SCHEMA "${schema}"`);
+    await migrate(url, { schema });
+    await client.query(`SET search_path TO "${schema}"`);
+    const q = (sql, values) => client.query(sql, values);
+    const founder = (await q("INSERT INTO users (external_subject) VALUES ('founder') RETURNING id")).rows[0].id;
+    const outsider = (await q("INSERT INTO users (external_subject) VALUES ('outsider') RETURNING id")).rows[0].id;
+    const ws = (await q("INSERT INTO workspaces (name) VALUES ('test') RETURNING id")).rows[0].id;
+    const otherWs = (await q("INSERT INTO workspaces (name) VALUES ('other') RETURNING id")).rows[0].id;
+    await q("INSERT INTO memberships (workspace_id, user_id, role) VALUES ($1, $2, 'founder')", [ws, founder]);
+    const account = (await q("INSERT INTO social_accounts (workspace_id, provider, provider_account_id, display_name) VALUES ($1, 'linkedin', 'person-1', 'Test') RETURNING id", [ws])).rows[0].id;
+    const key1 = randomBytes(32).toString('base64');
+    const key2 = randomBytes(32).toString('base64');
+    const env1 = { PUBX_CREDENTIAL_ACTIVE_KEY_ID: 'v1', PUBX_CREDENTIAL_KEYS: JSON.stringify({ v1: key1 }) };
+    const store1 = createCredentialStore(client, env1);
+    const args = { workspaceId: ws, accountId: account, actorId: founder };
+    const secret = `test-token-${randomUUID()}`;
+    await assert.rejects(store1.store({ ...args, actorId: outsider, accessToken: secret }), /Account unavailable/);
+    await store1.store({ ...args, accessToken: secret, refreshToken: 'refresh-secret', expiresAt: Date.now() + 60_000 });
+    const row = (await q('SELECT credential_ciphertext, credential_key_id, status FROM social_accounts WHERE id = $1', [account])).rows[0];
+    assert.equal(row.credential_key_id, 'v1');
+    assert.equal(row.status, 'connected');
+    assert.ok(!row.credential_ciphertext.includes(Buffer.from(secret)));
+    await assert.rejects(store1.read({ ...args, actorId: outsider }), /Account unavailable/);
+    await assert.rejects(store1.read({ ...args, workspaceId: otherWs }), /Account unavailable/);
+    assert.deepEqual(await store1.read(args), { accessToken: secret, refreshToken: 'refresh-secret' });
+    await assert.rejects(store1.revoke({ ...args, actorId: outsider }), /Account unavailable/);
+    const tampered = Buffer.from(row.credential_ciphertext);
+    tampered[28] ^= 1;
+    await q('UPDATE social_accounts SET credential_ciphertext = $2 WHERE id = $1', [account, tampered]);
+    await assert.rejects(store1.read(args), (error) => error.message === 'Credential cannot be decrypted' && !error.message.includes(secret));
+    await q('UPDATE social_accounts SET credential_ciphertext = $2 WHERE id = $1', [account, row.credential_ciphertext]);
+    const env2 = { PUBX_CREDENTIAL_ACTIVE_KEY_ID: 'v2', PUBX_CREDENTIAL_KEYS: JSON.stringify({ v1: key1, v2: key2 }) };
+    const store2 = createCredentialStore(client, env2);
+    await store2.rotateKey(args);
+    assert.equal((await q('SELECT credential_key_id FROM social_accounts WHERE id = $1', [account])).rows[0].credential_key_id, 'v2');
+    assert.deepEqual(await createCredentialStore(client, { PUBX_CREDENTIAL_ACTIVE_KEY_ID: 'v2', PUBX_CREDENTIAL_KEYS: JSON.stringify({ v2: key2 }) }).read(args), { accessToken: secret, refreshToken: 'refresh-secret' });
+    await q("UPDATE social_accounts SET token_expires_at = now() - interval '1 minute' WHERE id = $1", [account]);
+    await assert.rejects(store2.read(args), /Credential expired/);
+    assert.equal((await q('SELECT status FROM social_accounts WHERE id = $1', [account])).rows[0].status, 'expired');
+    await store2.store({ ...args, accessToken: 'replacement', expiresAt: Date.now() + 60_000 });
+    assert.equal((await store2.read(args)).accessToken, 'replacement');
+    await store2.revoke(args);
+    await assert.rejects(store2.read(args), /Credential unavailable/);
+    assert.equal((await q('SELECT credential_ciphertext FROM social_accounts WHERE id = $1', [account])).rows[0].credential_ciphertext, null);
+  } finally {
+    await client.query('SET search_path TO public').catch(() => {});
+    await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`).catch(() => {});
+    await client.end();
+  }
+});

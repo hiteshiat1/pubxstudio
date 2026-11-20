@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import {
   saveOutputBundle,
-  directPublishToAccount,
   fetchDynamicModels,
 } from "../actions";
 import {
@@ -267,9 +266,6 @@ export default function PubxStudioPage() {
 
   // --- Review & HITL States ---
   const [approvedForPublication, setApprovedForPublication] = useState(false);
-  const [publishStatus, setPublishStatus] = useState<Record<string, { ok: boolean; message: string; url?: string }>>({});
-  const [publishingTo, setPublishingTo] = useState<string | null>(null);
-
   // --- Settings Sidebar State ---
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKeys, setApiKeys] = useState({ openai: "", gemini: "", claude: "" });
@@ -287,23 +283,6 @@ export default function PubxStudioPage() {
     leadmagnet: false,
   });
   
-  // --- Connectors Grid & Publishing Dashboard State (Requirement 18 & Phase 2 #3) ---
-  const [connections, setConnections] = useState<Record<string, string>>({
-    linkedin: "",
-    twitter: "",
-    substack: "",
-    medium: "",
-    website: "",
-  });
-  
-  const [syncHistory, setSyncHistory] = useState<Record<string, { errorCount: number; lastSync: string | null }>>({
-    linkedin: { errorCount: 0, lastSync: null },
-    twitter: { errorCount: 0, lastSync: null },
-    substack: { errorCount: 0, lastSync: null },
-    medium: { errorCount: 0, lastSync: null },
-    website: { errorCount: 0, lastSync: null },
-  });
-
   // --- Version Control System State (Requirement 17 / phase2) ---
   const [versionHistory, setVersionHistory] = useState<Record<string, ContentVersion[]>>({});
   const [selectedVersionIndex, setSelectedVersionIndex] = useState<Record<string, number>>({});
@@ -333,9 +312,6 @@ export default function PubxStudioPage() {
   });
   const [guideCopied, setGuideCopied] = useState<string | null>(null);
 
-  // --- LinkedIn Destination State ---
-  const [linkedinTarget, setLinkedinTarget] = useState<"person" | "organization">("person");
-
   // Save target platform selections to localStorage on change
   useEffect(() => {
     localStorage.setItem("pubx_selected_platforms", JSON.stringify(selectedPlatforms));
@@ -348,17 +324,16 @@ export default function PubxStudioPage() {
 
   // Load Persisted Credentials & Pre-fill Presets
   useEffect(() => {
+    // Remove legacy browser-stored social credentials on first load.
+    localStorage.removeItem("pubx_connections");
+    localStorage.removeItem("pubx_linkedin_target");
+    localStorage.removeItem("pubx_sync_history");
     const savedKeys = localStorage.getItem("pubx_api_keys");
-    const savedConnections = localStorage.getItem("pubx_connections");
-    const savedSync = localStorage.getItem("pubx_sync_history");
     const savedModel = localStorage.getItem("pubx_default_model");
     const savedProvider = localStorage.getItem("pubx_default_provider");
-    const savedLinkedinTarget = localStorage.getItem("pubx_linkedin_target");
     const savedPlatforms = localStorage.getItem("pubx_selected_platforms");
 
     if (savedKeys) setApiKeys(JSON.parse(savedKeys));
-    if (savedConnections) setConnections(JSON.parse(savedConnections));
-    if (savedSync) setSyncHistory(JSON.parse(savedSync));
     if (savedProvider) setProvider(JSON.parse(savedProvider));
     if (savedModel) {
       let migratedModel = savedModel;
@@ -371,7 +346,6 @@ export default function PubxStudioPage() {
       }
       setModel(migratedModel);
     }
-    if (savedLinkedinTarget) setLinkedinTarget(savedLinkedinTarget as "person" | "organization");
     if (savedPlatforms) {
       try {
         setSelectedPlatforms(JSON.parse(savedPlatforms));
@@ -444,45 +418,14 @@ export default function PubxStudioPage() {
     }
   }, [guideOpen]);
 
-  // Sync Settings to LocalStorage
-  const saveSettings = (newKeys: typeof apiKeys, newConns: typeof connections, newLinkedinTarget: "person" | "organization") => {
+  // Only LLM settings are saved here; social credentials require authenticated OAuth.
+  const saveSettings = (newKeys: typeof apiKeys) => {
     localStorage.setItem("pubx_api_keys", JSON.stringify(newKeys));
-    localStorage.setItem("pubx_connections", JSON.stringify(newConns));
-    localStorage.setItem("pubx_linkedin_target", newLinkedinTarget);
     localStorage.setItem("pubx_default_provider", JSON.stringify(provider));
     localStorage.setItem("pubx_default_model", model);
     setApiKeys(newKeys);
-    setConnections(newConns);
-    setLinkedinTarget(newLinkedinTarget);
     setSaveStatus("✓ Settings updated successfully!");
     setTimeout(() => setSaveStatus(null), 3000);
-  };
-
-
-  // Connectors State Manager (Requirement 18)
-  const getConnectionStatus = (platform: string) => {
-    const value = connections[platform];
-    const history = syncHistory[platform] || { errorCount: 0, lastSync: null };
-    
-    if (!value) return { text: "Disconnected", color: "#FF5A5A", connected: false };
-    if (history.errorCount > 0) return { text: "Connection Error", color: "#FFAF5A", connected: true };
-    return { text: "Connected", color: "#5AFFDB", connected: true };
-  };
-
-  const handleDisconnect = (platform: string) => {
-    const updatedConns = { ...connections, [platform]: "" };
-    const updatedSync = {
-      ...syncHistory,
-      [platform]: { errorCount: 0, lastSync: null },
-    };
-    
-    setConnections(updatedConns);
-    setSyncHistory(updatedSync);
-    localStorage.setItem("pubx_connections", JSON.stringify(updatedConns));
-    localStorage.setItem("pubx_sync_history", JSON.stringify(updatedSync));
-    
-    setSaveStatus(`✓ Disconnected from ${platform.toUpperCase()}`);
-    setTimeout(() => setSaveStatus(null), 2500);
   };
 
   // Dynamic Category Change Handler with Preset Pre-fills (Requirement 14)
@@ -580,7 +523,6 @@ export default function PubxStudioPage() {
     setOutputs(null);
     setSaveStatus(null);
     setApprovedForPublication(false);
-    setPublishStatus({});
     setStep(0);
 
     const stepInterval = setInterval(() => {
@@ -895,96 +837,6 @@ Rules:
         },
       };
     });
-  };
-
-  // direct publishing handler
-  const handleDirectPublish = async (platform: string) => {
-    if (!outputs) return;
-    setPublishingTo(platform);
-    
-    const formattedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const formattedDate = new Date().toLocaleDateString([], { month: 'short', day: 'numeric' });
-    const syncStamp = `${formattedDate}, ${formattedTime}`;
-
-    try {
-      const pluginId = platform === "twitter" ? "x" : platform === "website" ? "article" : platform;
-      const content = outputs.results[pluginId] || "";
-
-      // Character limit free plan safety interceptor (Requirement 24)
-      const limits: Record<string, number> = {
-        x: 280,
-        linkedin: 3000,
-        substack: 100000,
-        medium: 150000,
-        article: 120000,
-      };
-
-      const maxLimit = limits[pluginId] || 100000;
-      if (pluginId === "x") {
-        const tweets = content.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean);
-        const longTweets = tweets.filter(t => t.length > 280);
-        if (longTweets.length > 0) {
-          const proceed = window.confirm(`⚠️ Warning: You have ${longTweets.length} tweet(s) in your thread that exceed the X (Twitter) free tier limit of 280 characters. Are you sure you want to publish?`);
-          if (!proceed) {
-            setPublishingTo(null);
-            return;
-          }
-        }
-      } else if (platform === "linkedin" && content.length > 3000) {
-        alert(`❌ Error: LinkedIn posts cannot exceed 3,000 characters (current draft is ${content.length.toLocaleString()} characters). Please shorten the draft in the editor before publishing.`);
-        setPublishingTo(null);
-        return;
-      } else if (content.length > maxLimit) {
-        const proceed = window.confirm(`⚠️ Warning: The current draft for ${platform.toUpperCase()} (${content.length.toLocaleString()} characters) exceeds the free platform limit of ${maxLimit.toLocaleString()} characters. Are you sure you want to publish?`);
-        if (!proceed) {
-          setPublishingTo(null);
-          return;
-        }
-      }
-
-      const credentials = {
-        token: connections[platform],
-        apiKey: apiKeys[provider],
-        linkedinTarget: platform === "linkedin" ? linkedinTarget : "",
-      };
-
-      const result = await directPublishToAccount({
-        slug,
-        platform,
-        content,
-        credentials,
-      });
-
-      if (!result.ok) {
-        throw new Error(result.message);
-      }
-
-      setPublishStatus((prev) => ({ ...prev, [platform]: result }));
-
-      const updatedSync = {
-        ...syncHistory,
-        [platform]: { errorCount: 0, lastSync: syncStamp },
-      };
-      setSyncHistory(updatedSync);
-      localStorage.setItem("pubx_sync_history", JSON.stringify(updatedSync));
-
-    } catch (err) {
-      const failMsg = err instanceof Error ? err.message : "Publishing failed";
-      setPublishStatus((prev) => ({
-        ...prev,
-        [platform]: { ok: false, message: failMsg },
-      }));
-
-      const history = syncHistory[platform] || { errorCount: 0, lastSync: null };
-      const updatedSync = {
-        ...syncHistory,
-        [platform]: { errorCount: history.errorCount + 1, lastSync: syncStamp },
-      };
-      setSyncHistory(updatedSync);
-      localStorage.setItem("pubx_sync_history", JSON.stringify(updatedSync));
-    } finally {
-      setPublishingTo(null);
-    }
   };
 
   const isMoEActive = moeOverride !== null ? moeOverride : detectMoE(model);
@@ -1494,7 +1346,7 @@ Rules:
           {outputs && (
             <div style={{ marginTop: 32 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, borderBottom: "1px solid var(--border-main)", paddingBottom: 12 }}>
-                <h2 style={{ fontSize: 20, color: "var(--text-heading)", fontFamily: "var(--font-jetbrains, monospace)", margin: 0 }}>Human Review Panel (Approved for Publication)</h2>
+                <h2 style={{ fontSize: 20, color: "var(--text-heading)", fontFamily: "var(--font-jetbrains, monospace)", margin: 0 }}>Human Review Panel</h2>
                 
                 {/* HITL Approved state toggle */}
                 <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
@@ -1505,7 +1357,7 @@ Rules:
                     style={{ width: 18, height: 18, accentColor: activeColor }}
                   />
                   <span style={{ fontSize: 12, fontFamily: "var(--font-jetbrains, monospace)", color: approvedForPublication ? activeColor : "var(--text-label)", fontWeight: 700 }}>
-                    {approvedForPublication ? "APPROVED FOR PUBLICATION" : "MARK AS APPROVED"}
+                    {approvedForPublication ? "REVIEWED LOCALLY" : "MARK AS REVIEWED"}
                   </span>
                 </label>
               </div>
@@ -1705,46 +1557,15 @@ Rules:
                   Save Local Bundle (published/{slug}/)
                 </button>
 
-                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                  {["linkedin", "twitter", "substack", "medium", "website"].filter((p) => {
-                    if (p === "website") return true;
-                    const key = p === "twitter" ? "x" : p;
-                    return selectedPlatforms[key] === true;
-                  }).map((p) => {
-                    const isPublished = publishStatus[p]?.ok;
-                    
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => handleDirectPublish(p)}
-                        disabled={!approvedForPublication || publishingTo === p || isPublished}
-                        style={{ padding: "10px 14px", border: "1px solid var(--border-main)", borderRadius: 6, background: isPublished ? "rgba(90,255,219,0.05)" : publishingTo === p ? "var(--border-main)" : !approvedForPublication ? "rgba(255,255,255,0.01)" : "var(--bg-subtle)", color: isPublished ? "#5AFFDB" : publishingTo === p ? "var(--text-muted)" : !approvedForPublication ? "var(--text-muted-dark)" : "var(--text-heading)", fontFamily: "var(--font-jetbrains, monospace)", fontSize: 11, cursor: !approvedForPublication || isPublished ? "not-allowed" : "pointer", fontWeight: 700, boxShadow: "var(--shadow)" }}
-                        title={!approvedForPublication ? "You must mark contents as 'Approved for Publication' to unlock triggers." : `Direct Publish to ${p}`}
-                      >
-                        {publishingTo === p ? "Posting..." : isPublished ? `✓ Posted` : `Publish ${p.toUpperCase()}`}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span style={{ marginLeft: "auto", color: "var(--text-muted)", fontSize: 12 }}>
+                  Publishing is unavailable until secure account connection and approval are configured.
+                </span>
               </div>
 
               {saveStatus && (
                 <pre style={{ marginTop: 16, padding: 14, background: "var(--bg-subtle)", border: "1px solid var(--border-main)", borderRadius: 8, fontSize: 12, color: saveStatus.startsWith("✓") ? "#5AFFDB" : "#FF5A5A", fontFamily: "var(--font-jetbrains, monospace)", whiteSpace: "pre-wrap" }}>
                   {saveStatus}
                 </pre>
-              )}
-
-              {/* Show direct publication live links summaries */}
-              {Object.keys(publishStatus).length > 0 && (
-                <div style={{ marginTop: 16, padding: 14, background: "#0F1A1A", border: "1px solid #142E2E", borderRadius: 8 }}>
-                  <span style={{ fontSize: 11, fontFamily: "var(--font-jetbrains, monospace)", color: "#5AFFDB", fontWeight: 700, display: "block", marginBottom: 8 }}>Publication Log Summaries</span>
-                  {Object.entries(publishStatus).map(([p, s]) => (
-                    <div key={p} style={{ fontSize: 12, fontFamily: "var(--font-jetbrains, monospace)", marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: s.ok ? "#5AFFDB" : "#FF5A5A" }}>● {p.toUpperCase()}: {s.message}</span>
-                      {s.url && <a href={s.url} target="_blank" rel="noreferrer" style={{ color: activeColor, textDecoration: "underline" }}>View Live</a>}
-                    </div>
-                  ))}
-                </div>
               )}
 
             </div>
@@ -1887,15 +1708,7 @@ Rules:
                 gemini: fd.get("key_gemini") as string,
                 claude: fd.get("key_claude") as string,
               };
-              const newConns = {
-                linkedin: fd.get("conn_linkedin") as string,
-                twitter: fd.get("conn_twitter") as string,
-                substack: fd.get("conn_substack") as string,
-                medium: fd.get("conn_medium") as string,
-                website: fd.get("conn_website") as string,
-              };
-              const newLinkedinTarget = fd.get("linkedin_target") as "person" | "organization";
-              saveSettings(newKeys, newConns, newLinkedinTarget);
+              saveSettings(newKeys);
               setSettingsOpen(false);
             }}>
               
@@ -1919,43 +1732,9 @@ Rules:
                 </div>
               </div>
 
-              {/* Part 2: Platform Credentials */}
-              <div style={{ marginBottom: 24 }}>
-                <h4 style={{ fontSize: 12, fontFamily: "var(--font-jetbrains, monospace)", color: activeColor, textTransform: "uppercase", marginBottom: 12 }}>Account Connection Tokens</h4>
-                
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 10, color: "var(--text-muted)", display: "block", marginBottom: 4, fontFamily: "var(--font-jetbrains, monospace)" }}>LINKEDIN ACCESS TOKEN</label>
-                  <input type="password" name="conn_linkedin" defaultValue={connections.linkedin} placeholder="Local token / credentials identifier" style={{ width: "100%", padding: "8px 10px", background: "var(--bg-input)", border: "1px solid var(--border-main)", borderRadius: 6, color: "var(--text-heading)", fontSize: 12, outline: "none" }} />
-                </div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 10, color: "var(--text-muted)", display: "block", marginBottom: 4, fontFamily: "var(--font-jetbrains, monospace)" }}>LINKEDIN POST DESTINATION</label>
-                  <select name="linkedin_target" defaultValue={linkedinTarget} style={{ width: "100%", padding: "8px 10px", background: "var(--bg-input)", border: "1px solid var(--border-main)", borderRadius: 6, color: "var(--text-heading)", fontSize: 12, outline: "none", fontFamily: "var(--font-jetbrains, monospace)" }}>
-                    <option value="person">Personal Profile Feed (w_member_social)</option>
-                    <option value="organization">Organization Company Page (w_organization_social)</option>
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 10, color: "var(--text-muted)", display: "block", marginBottom: 4, fontFamily: "var(--font-jetbrains, monospace)" }}>TWITTER / X BEARER KEY</label>
-                  <input type="password" name="conn_twitter" defaultValue={connections.twitter} placeholder="Twitter app credentials block" style={{ width: "100%", padding: "8px 10px", background: "var(--bg-input)", border: "1px solid var(--border-main)", borderRadius: 6, color: "var(--text-heading)", fontSize: 12, outline: "none" }} />
-                </div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 10, color: "var(--text-muted)", display: "block", marginBottom: 4, fontFamily: "var(--font-jetbrains, monospace)" }}>SUBSTACK APP CODE</label>
-                  <input type="password" name="conn_substack" defaultValue={connections.substack} placeholder="Substack direct connection token" style={{ width: "100%", padding: "8px 10px", background: "var(--bg-input)", border: "1px solid var(--border-main)", borderRadius: 6, color: "var(--text-heading)", fontSize: 12, outline: "none" }} />
-                </div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 10, color: "var(--text-muted)", display: "block", marginBottom: 4, fontFamily: "var(--font-jetbrains, monospace)" }}>MEDIUM API KEY</label>
-                  <input type="password" name="conn_medium" defaultValue={connections.medium} placeholder="Medium Integration Token" style={{ width: "100%", padding: "8px 10px", background: "var(--bg-input)", border: "1px solid var(--border-main)", borderRadius: 6, color: "var(--text-heading)", fontSize: 12, outline: "none" }} />
-                </div>
-
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 10, color: "var(--text-muted)", display: "block", marginBottom: 4, fontFamily: "var(--font-jetbrains, monospace)" }}>WEBSITE WEBHOOK / APP PSWD</label>
-                  <input type="password" name="conn_website" defaultValue={connections.website} placeholder="WordPress App password or direct webhook" style={{ width: "100%", padding: "8px 10px", background: "var(--bg-input)", border: "1px solid var(--border-main)", borderRadius: 6, color: "var(--text-heading)", fontSize: 12, outline: "none" }} />
-                </div>
-              </div>
+              <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                Social account connections will be available through secure OAuth setup. Do not paste social tokens here.
+              </p>
 
               <button
                 type="submit"
@@ -1965,58 +1744,6 @@ Rules:
               </button>
 
             </form>
-
-            {/* Part 3: Live Connectors Status Dashboard */}
-            <div style={{ marginTop: 32, borderTop: "1px solid var(--border-main)", paddingTop: 24 }}>
-              <h4 style={{ fontSize: 12, fontFamily: "var(--font-jetbrains, monospace)", color: activeColor, textTransform: "uppercase", marginBottom: 16 }}>Live Connectors Dashboard</h4>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {[
-                  { id: "linkedin", name: "LinkedIn" },
-                  { id: "twitter", name: "Twitter/X" },
-                  { id: "substack", name: "Substack" },
-                  { id: "medium", name: "Medium" },
-                  { id: "website", name: "Website/WP" },
-                ].map((plat) => {
-                  const stat = getConnectionStatus(plat.id);
-                  const sync = syncHistory[plat.id] || { errorCount: 0, lastSync: null };
-                  
-                  return (
-                    <div key={plat.id} style={{ padding: "12px", background: "var(--bg-input-focus)", border: "1px solid var(--border-main)", borderRadius: 8 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <div style={{ fontSize: 13, color: "var(--text-heading)", fontWeight: 700 }}>{plat.name}</div>
-                        <span style={{ padding: "2px 6px", borderRadius: 4, fontSize: 9, fontFamily: "var(--font-jetbrains, monospace)", fontWeight: 700, background: `${stat.color}15`, color: stat.color, border: `1px solid ${stat.color}30` }}>
-                          {stat.text}
-                        </span>
-                      </div>
-
-                      <div style={{ fontSize: 10, color: "var(--text-label)", fontFamily: "var(--font-jetbrains, monospace)", display: "flex", flexDirection: "column", gap: 3, marginBottom: 8 }}>
-                        <div>Sync Time: <span style={{ color: "var(--text-muted)" }}>{sync.lastSync || "Never"}</span></div>
-                        <div>Errors: <span style={{ color: sync.errorCount > 0 ? "#FF5A5A" : "var(--text-muted-dark)" }}>{sync.errorCount}</span></div>
-                      </div>
-
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {!stat.connected ? (
-                          <button
-                            style={{ flex: 1, padding: "4px 8px", background: "var(--bg-subtle)", border: "1px solid var(--border-main)", borderRadius: 4, color: "var(--text-label)", fontSize: 10, fontFamily: "var(--font-jetbrains, monospace)" }}
-                            disabled
-                          >
-                            Provide token above
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleDisconnect(plat.id)}
-                            style={{ flex: 1, padding: "4px 8px", background: "rgba(255,90,90,0.05)", border: "1px solid rgba(255,90,90,0.1)", borderRadius: 4, color: "#FF5A5A", fontSize: 10, cursor: "pointer", fontFamily: "var(--font-jetbrains, monospace)" }}
-                          >
-                            Disconnect Platform
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
 
           </div>
         </div>
@@ -2093,10 +1820,10 @@ Rules:
               {(!guideSearch || guideSearch.toLowerCase().includes("welcome") || guideSearch.toLowerCase().includes("guide")) && (
                 <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)", borderRadius: 8, padding: 20 }}>
                   <p style={{ fontSize: 13, color: "var(--text-main)", margin: 0, lineHeight: 1.6 }}>
-                    Welcome to the <strong>PubxStudio</strong> setup center. Integrate your API keys, establish distribution connectors, and publish content dynamically.
+                    Welcome to the <strong>PubxStudio</strong> setup center. Add an LLM key, generate drafts, and export reviewed content.
                   </p>
                   <div style={{ marginTop: 12, fontSize: 11, color: "var(--guide-text-highlight)", fontFamily: "var(--font-jetbrains, monospace)", background: "var(--guide-bg-highlight)", padding: 10, borderRadius: 6, border: "1px solid var(--guide-border-highlight)" }}>
-                    🔐 Keys and tokens are persistent strictly inside your local browser storage (`localStorage`) and never exit your device.
+                    LLM keys are saved in browser storage and sent to the selected provider. Social tokens are not accepted here.
                   </div>
                 </div>
               )}
@@ -2279,7 +2006,7 @@ Rules:
                       <div>
                         <h6 style={{ margin: "0 0 8px 0", color: "var(--text-heading)", fontSize: 13 }}>Step 5: Direct Post</h6>
                         <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
-                          Tick **Approved for Publication**, then trigger direct publishing to connected LinkedIn accounts, delivering live update feeds!
+                          Review your draft and export a bundle. Direct social publishing is unavailable until secure account connection and approval are configured.
                         </p>
                       </div>
                     )}
@@ -2424,7 +2151,7 @@ Rules:
               <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid #10B981", borderRadius: 8, padding: 16, color: "#34D399" }}>
                 <strong style={{ display: "block", marginBottom: 6, fontSize: 12, letterSpacing: "0.05em", textTransform: "uppercase" }}>🔒 Zero-Server Storage Guarantee</strong>
                 <p style={{ margin: 0, fontSize: 12 }}>
-                  All your developer keys, client access tokens, custom preset inputs, tone instructions, and draft logs are stored <strong>exclusively in your browser's local storage (`localStorage`)</strong>. No credentials ever touch our servers, databases, or version control systems.
+                  LLM API keys currently use browser localStorage and are sent to the selected provider. Social access tokens are not accepted in the browser; account connection is unavailable until OAuth is configured.
                 </p>
               </div>
 
