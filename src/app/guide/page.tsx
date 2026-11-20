@@ -327,14 +327,14 @@ export default function StaticUserGuidePage() {
         badge: "w_member_social",
         color: "#0A66C2",
         link: "https://developer.linkedin.com/",
-        instructions: linkedinInst.length > 0 ? linkedinInst : ["Visit LinkedIn Developers Portal.", "Create an App associated with verified Company Page.", "Activate Share on LinkedIn inside products tab.", "Generate Member Access Token and paste in keys."],
+        instructions: linkedinInst.length > 0 ? linkedinInst : ["LinkedIn account connection is unavailable until secure OAuth is configured. Do not paste access tokens into PubxStudio."],
       },
       {
         title: "Twitter / X Platform",
         badge: "Bearer Token",
         color: "#1DA1F2",
         link: "https://developer.twitter.com/en/portal/dashboard",
-        instructions: twitterInst.length > 0 ? twitterInst : ["Visit Twitter Developers Dashboard.", "Enable OAuth 2.0 (Web or Native Client app).", "Copy client Bearer Access Token key and save in workspace settings."],
+        instructions: twitterInst.length > 0 ? twitterInst : ["X account connection is unavailable until secure OAuth is configured. Do not paste access tokens into PubxStudio."],
       },
       {
         title: "Substack Drip Connection",
@@ -348,7 +348,7 @@ export default function StaticUserGuidePage() {
         badge: "Integration Token",
         color: "#ffffff",
         link: "https://medium.com/me/settings/security",
-        instructions: mediumInst.length > 0 ? mediumInst : ["Visit Medium Security settings profile.", "Generate direct Integration Token descriptive label.", "Paste integration token key in credentials settings."],
+        instructions: mediumInst.length > 0 ? mediumInst : ["Medium account connection is unavailable. Do not paste integration tokens into PubxStudio."],
       },
     ]);
 
@@ -579,7 +579,7 @@ export default function StaticUserGuidePage() {
                   <span>📖</span> Welcome to PubxStudio Guide
                 </h2>
                 <p style={{ fontSize: 15, color: "var(--text-main)", lineHeight: 1.7, margin: 0 }}>
-                  {renderFormattedText(guideIntro || "This interactive guide manual outlines how to setup API keys, establish direct publishing adapters, configure custom hashtag pipelines, and run your first dynamic multi-LLM Studio flow.")}
+                  {renderFormattedText(guideIntro || "Set up an LLM key, generate and review drafts, then export content for manual publishing.")}
                 </p>
                 <div style={{
                   marginTop: 20,
@@ -592,7 +592,7 @@ export default function StaticUserGuidePage() {
                   lineHeight: 1.6,
                   fontFamily: "var(--font-jetbrains, monospace)",
                 }}>
-                  🔐 <strong>SECURITY GUARANTEE:</strong> All keys and integration credentials are saved <strong>exclusively in your browser's local storage (`localStorage`)</strong>. No credentials ever touch our servers or code versioning stacks, ensuring complete stateless offline privacy!
+                  LLM API keys remain in browser storage and are sent to the selected provider. Social account tokens are no longer accepted in the browser.
                 </div>
               </div>
             </section>
@@ -670,7 +670,7 @@ export default function StaticUserGuidePage() {
                   🚀 Setting Up Platform Connectors
                 </h2>
                 <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>
-                  Enable direct publishers by configuring access tokens for LinkedIn, Twitter, Substack, and Medium.
+                  Social account connection is unavailable until secure OAuth and approval are configured. Do not paste social tokens into the app.
                 </p>
               </div>
 
@@ -852,7 +852,7 @@ export default function StaticUserGuidePage() {
                     🎉 Tutorial Completed Successfully!
                   </h3>
                   <p style={{ fontSize: 13, color: "var(--text-main)", margin: "8px 0 16px 0", lineHeight: 1.5, fontFamily: "var(--font-jetbrains, monospace)" }}>
-                    You are now fully trained on PubxStudio's multi-LLM Studio! You can confidently configure keys, upload research context, optimize SEO metrics, and execute Direct Publishing actions.
+                    You can configure an LLM key, upload research context, optimize SEO metrics, and export reviewed drafts.
                   </p>
                   <a
                     href="/studio"
@@ -989,7 +989,7 @@ export default function StaticUserGuidePage() {
               <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid #10B981", borderRadius: 8, padding: 16, color: "#34D399" }}>
                 <strong style={{ display: "block", marginBottom: 6, fontSize: 12, letterSpacing: "0.05em", textTransform: "uppercase" }}>🔒 Zero-Server Storage Guarantee</strong>
                 <p style={{ margin: 0, fontSize: 12 }}>
-                  All your developer keys, client access tokens, custom preset inputs, tone instructions, and draft logs are stored <strong>exclusively in your browser's local storage (`localStorage`)</strong>. No credentials ever touch our servers, databases, or version control systems.
+                  LLM API keys are currently stored in browser localStorage. Social account tokens are not accepted; server-side encrypted storage is reserved for future OAuth connections.
                 </p>
               </div>
 

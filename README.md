@@ -1,5 +1,7 @@
 # 🛡️ PubxStudio — Premium Multi-Agent Content Workspace & Distribution Engine
 
+**Publishing status:** Direct social publishing is disabled while secure OAuth, account authorization, and server-side approval are built. The Studio can generate, review, and export drafts. Do not paste social access tokens into it. The older feature descriptions below predate this security change.
+
 PubxStudio is a high-fidelity, self-hosted, offline-capable multi-agent content generation and publishing workspace. Designed for ultimate privacy and developer convenience, it enables users to input topic briefs, attach rich multi-modal context (images, links, references), generate premium structured content targeted at specific domain categories, run auto-optimizers, maintain local drafts version control, and publish directly to social networks with a fully interactive **Human-in-the-Loop (HITL)** validation system.
 
 ---

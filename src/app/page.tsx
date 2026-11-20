@@ -188,7 +188,7 @@ export default function LandingPage() {
             maxWidth: "640px",
             margin: "0 auto 32px auto"
           }}>
-            PubxStudio is a high-fidelity, self-hosted, offline-capable multi-agent Studio. Author posts, execute RAG-driven context briefs, preview SVG media, and publish to social channels.
+            PubxStudio is a self-hosted content studio. Author posts, work from reference material, preview SVG media, and export drafts for social channels.
           </p>
 
           <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
@@ -333,7 +333,7 @@ export default function LandingPage() {
             <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)", borderRadius: "12px", padding: "24px" }}>
               <h3 style={{ color: "#8D6CFF", fontSize: "18px", margin: "0 0 12px 0" }}>🔗 Multi-Platform Plugin Registry</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "13px", lineHeight: "1.6", margin: 0 }}>
-                Directly publishes and bundles output packages tailored for LinkedIn Posts, Twitter Threads, Substack Newsletters, and JSON SEO profiles.
+                Creates exportable drafts tailored for LinkedIn Posts, Twitter Threads, Substack Newsletters, and JSON SEO profiles.
               </p>
             </div>
 
@@ -341,7 +341,7 @@ export default function LandingPage() {
             <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)", borderRadius: "12px", padding: "24px" }}>
               <h3 style={{ color: "#00E5FF", fontSize: "18px", margin: "0 0 12px 0" }}>🔒 Absolute Privacy & Offline Zip</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "13px", lineHeight: "1.6", margin: 0 }}>
-                All secrets are saved in browser localStorage. Generates a fully consolidated offline ZIP archive compiling all media assets and markdown drafts.
+                LLM keys currently remain in browser storage. Export a ZIP archive with media assets and markdown drafts.
               </p>
             </div>
           </div>
@@ -459,7 +459,7 @@ export default function LandingPage() {
           <strong style={{ color: "#FF5A8A", display: "block", marginBottom: "6px" }}>
             🔒 Privacy & Session Storage Notice:
           </strong>
-          Nothing is stored on the server side or application backend. All of your API keys, credentials, drafts, and system configurations are saved exclusively within your browser's local sandbox storage ('localStorage'). 
+          LLM API keys and settings are currently saved in browser localStorage. Social tokens are no longer accepted in the browser. Generated bundles can be written by the server when you choose to save them.
           <span style={{ display: "block", marginTop: "8px", color: "#FF8FAD", fontWeight: "bold" }}>
             ⚠️ WARNING: If you clear your browser cache, cookies, or site data, all your credentials and saved configurations will be permanently erased.
           </span>
