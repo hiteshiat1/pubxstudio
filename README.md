@@ -2,6 +2,8 @@
 
 **Publishing status:** Direct social publishing is disabled while secure OAuth, account authorization, and server-side approval are built. The Studio can generate, review, and export drafts. Do not paste social access tokens into it. The older feature descriptions below predate this security change.
 
+Workspace access uses a GitHub OAuth login and database sessions once the founder configures the app in [MANUAL_ACTIONS.md](MANUAL_ACTIONS.md). Draft ZIP exports stay in the browser; the server no longer writes unscoped bundles to `published/`.
+
 PubxStudio is a high-fidelity, self-hosted, offline-capable multi-agent content generation and publishing workspace. Designed for ultimate privacy and developer convenience, it enables users to input topic briefs, attach rich multi-modal context (images, links, references), generate premium structured content targeted at specific domain categories, run auto-optimizers, maintain local drafts version control, and publish directly to social networks with a fully interactive **Human-in-the-Loop (HITL)** validation system.
 
 ---

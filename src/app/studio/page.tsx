@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  saveOutputBundle,
   fetchDynamicModels,
 } from "../actions";
 import {
@@ -10,6 +9,7 @@ import {
   callLLMClient,
 } from "../utils/llmClient";
 import { downloadZip } from "../utils/zip";
+import WorkspaceSession from "../components/WorkspaceSession";
 import {
   PUBLISHING_PLUGINS,
   detectMoE,
@@ -762,25 +762,10 @@ Rules:
     }
   };
 
-  // Save the full bundle package to published/${slug}/
+  // Download a local ZIP without writing unscoped content to the server.
   const handleSaveOutputBundle = async () => {
     if (!outputs) return;
-    setSaveStatus("Saving Output Bundle...");
-    
-    let serverSaved = false;
-    let filesList: string[] = [];
-    try {
-      const res = await saveOutputBundle({
-        slug,
-        results: outputs.results,
-        diagram: outputs.diagram,
-        attachedImages,
-      });
-      serverSaved = res.ok;
-      filesList = res.filesSaved;
-    } catch (err) {
-      console.warn("Server-side file saving skipped or failed (common in cloud environments):", err);
-    }
+    setSaveStatus("Packaging ZIP...");
 
     // Dynamic browser-side ZIP packaging & download
     try {
@@ -814,11 +799,7 @@ Rules:
 
       downloadZip(slug, zipFiles);
 
-      if (serverSaved) {
-        setSaveStatus(`✓ Bundle saved to local directory published/${slug}/\n✓ Automatic download of '${slug}.zip' started successfully!\n\nFiles packaged:\n${filesList.join("\n")}`);
-      } else {
-        setSaveStatus(`✓ Automatic download of '${slug}.zip' started successfully!\n(Note: Cloud mode active, local filesystem write bypassed)`);
-      }
+      setSaveStatus(`✓ Download of '${slug}.zip' started successfully!`);
     } catch (zipErr) {
       setSaveStatus(`✗ Save failed: ${zipErr instanceof Error ? zipErr.message : String(zipErr)}`);
     }
@@ -866,6 +847,7 @@ Rules:
       )}
       
       {/* Header and settings buttons */}
+      <WorkspaceSession />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 30 }}>
         <div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
@@ -1554,7 +1536,7 @@ Rules:
                   onClick={handleSaveOutputBundle}
                   style={{ padding: "12px 24px", background: "transparent", border: `1.5px solid ${activeColor}`, borderRadius: 8, color: activeColor, fontFamily: "var(--font-jetbrains, monospace)", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em" }}
                 >
-                  Save Local Bundle (published/{slug}/)
+                  Download Draft ZIP
                 </button>
 
                 <span style={{ marginLeft: "auto", color: "var(--text-muted)", fontSize: 12 }}>
