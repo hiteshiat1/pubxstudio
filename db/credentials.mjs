@@ -73,6 +73,15 @@ export function createCredentialStore(client, env = process.env) {
     if (account.status === 'expired') throw new Error('Credential expired');
     return open(account.credential_ciphertext, keys.get(account.credential_key_id), workspaceId, accountId);
   }
+  async function readForRefresh({ workspaceId, accountId, actorId }) {
+    const account = await accountForFounder(workspaceId, accountId, actorId, true);
+    if (account.provider !== 'x' || !['connected', 'expired'].includes(account.status) || !account.credential_ciphertext) {
+      throw new Error('Credential unavailable');
+    }
+    const credential = open(account.credential_ciphertext, keys.get(account.credential_key_id), workspaceId, accountId);
+    if (!credential.refreshToken) throw new Error('Refresh unavailable');
+    return credential;
+  }
   async function revoke({ workspaceId, accountId, actorId }) {
     await accountForFounder(workspaceId, accountId, actorId);
     const result = await client.query(`UPDATE social_accounts SET credential_ciphertext = NULL,
@@ -96,5 +105,5 @@ export function createCredentialStore(client, env = process.env) {
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK'); throw error; }
   }
-  return { store, read, revoke, rotateKey };
+  return { store, read, readForRefresh, revoke, rotateKey };
 }
