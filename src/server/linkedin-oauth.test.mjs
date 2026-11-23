@@ -30,6 +30,9 @@ test('LinkedIn OAuth binds state to founder session, consumes it once, and store
     const start = () => startLinkedInOAuth({ client, sessionToken: founder, workspaceId, env });
     const first = new URL(await start());
     assert.equal(first.searchParams.get('scope'), 'openid profile w_member_social');
+    const optionalScopes = new URL(await startLinkedInOAuth({ client, sessionToken: founder, workspaceId,
+      env: { ...env, PUBX_LINKEDIN_REQUEST_LITEPROFILE: '1' } }));
+    assert.equal(optionalScopes.searchParams.get('scope'), 'openid profile w_member_social r_liteprofile');
     assert.equal(first.searchParams.get('redirect_uri'), 'http://localhost:3001/api/social/linkedin/callback');
     assert.ok(!first.toString().includes('client-secret'));
     const state = first.searchParams.get('state');
