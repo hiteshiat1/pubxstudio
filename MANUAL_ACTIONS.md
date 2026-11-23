@@ -10,6 +10,12 @@ This checklist covers actions that require the founder's provider accounts, bill
 - [ ] Once the application callback route is implemented, register its exact HTTPS production and staging URLs in the app's **Auth** tab. The URL must exactly match the OAuth request. Confirm the redirect works without sharing the code or token.
 - [ ] Record the app name, nonsecret client ID, granted products/scopes, redirect URL host/path, page eligibility, and any review status in issue #5. Put the client secret only in the deployment secret manager.
 
+## 1a. Workspace login app — [issue #14](https://github.com/hiteshiat1/pubxstudio/issues/14)
+
+- [ ] In [GitHub OAuth Apps](https://github.com/settings/developers), register an OAuth app for PubxStudio. Set its callback URL to the exact production origin plus `/api/auth/github/callback`; add the staging callback separately if used. Disable wildcard callback matching. See [GitHub's setup guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app).
+- [ ] Set server-side `PUBX_APP_ORIGIN`, `PUBX_GITHUB_CLIENT_ID`, `PUBX_GITHUB_CLIENT_SECRET`, and `PUBX_FOUNDER_GITHUB_ID`. The founder ID is the numeric GitHub account ID (not the login name); confirm it under your own account before configuring. Add `PUBX_INITIAL_WORKSPACE_NAME` if you want a different first workspace name. Keep the client secret in the deployment secret manager.
+- [ ] Sign in from `/studio` using the founder account, confirm a founder workspace is created once, then use the authenticated member API to invite other GitHub IDs as `approver` or `operator`. Do not grant an unknown account a role. Record only nonsecret login and role-test evidence in issue #14.
+
 ## 2. X developer application and cost decision — [issue #10](https://github.com/hiteshiat1/pubxstudio/issues/10)
 
 - [ ] Sign in to the [X Developer Portal](https://developer.x.com/) and confirm the project, app, and account that will own posts. Check the current write API availability, request limits, and pricing shown in your console. Prices and eligibility can change.
@@ -27,4 +33,4 @@ This checklist covers actions that require the founder's provider accounts, bill
 
 ## Current state
 
-The database schema, encrypted credential primitive, and LinkedIn Posts API adapter have been implemented. The app currently does **not** offer authenticated account connection, a live publishing workflow, or a deployed worker. Do not treat a draft export or a mocked provider response as a live publication.
+The database schema, encrypted credential primitive, LinkedIn Posts API adapter, and GitHub-backed workspace session/role code have been implemented. The login app still needs founder configuration. The app does **not** yet offer social account connection, a live publishing workflow, or a deployed worker. Do not treat a draft export or a mocked provider response as a live publication.

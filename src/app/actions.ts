@@ -1,10 +1,5 @@
 "use server";
 
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { format } from "prettier";
-import * as parserMarkdown from "prettier/plugins/markdown";
-import * as parserEstree from "prettier/plugins/estree";
 import {
   PUBLISHING_PLUGINS,
   detectMoE,
@@ -12,45 +7,6 @@ import {
   type Category,
   type PipelineOutputs,
 } from "./constants";
-
-// Studio lives at pubxstudio/studio/ — all content writes go to the parent repo root
-const getProjectRoot = () => {
-  const cwd = process.cwd();
-  if (cwd.endsWith("/studio") || cwd.endsWith("\\studio")) {
-    return path.join(cwd, "..");
-  }
-  return cwd;
-};
-const ROOT = getProjectRoot();
-
-// Prettier Formatting Helpers
-async function formatMdx(content: string): Promise<string> {
-  try {
-    return await format(content, {
-      parser: "mdx",
-      plugins: [parserMarkdown, parserEstree],
-      proseWrap: "never",
-      printWidth: 80,
-    });
-  } catch (error) {
-    console.error("Failed to format MDX:", error);
-    return content;
-  }
-}
-
-async function formatMd(content: string): Promise<string> {
-  try {
-    return await format(content, {
-      parser: "markdown",
-      plugins: [parserMarkdown],
-      proseWrap: "never",
-      printWidth: 80,
-    });
-  } catch (error) {
-    console.error("Failed to format Markdown:", error);
-    return content;
-  }
-}
 
 // -------------------------------------------------------------
 // Universal LLM Orchestrator Layer
@@ -567,92 +523,6 @@ Rules:
   } catch (err) {
     throw new Error(`SEO Auto-Optimization failed: ${err instanceof Error ? err.message : String(err)}`);
   }
-}
-
-// -------------------------------------------------------------
-// Unified Output Path & Save Actions
-// -------------------------------------------------------------
-export async function saveOutputBundle(options: {
-  slug: string;
-  results: Record<string, string>; // Maps plugin ID to raw content
-  diagram?: { name: string; base64: string } | null;
-  attachedImages: { name: string; dataUrl: string }[];
-}): Promise<{ ok: boolean; path: string; filesSaved: string[] }> {
-  const { slug, results, diagram, attachedImages } = options;
-
-  const bundleDir = path.join(ROOT, "published", slug);
-  await mkdir(bundleDir, { recursive: true });
-
-  const filesSaved: string[] = [];
-
-  // 1. Process and save each Plugin Output
-  for (const plugin of PUBLISHING_PLUGINS) {
-    const content = results[plugin.id];
-    if (!content) continue;
-
-    const relativePath = plugin.outputPath;
-    const fullPath = path.join(bundleDir, relativePath);
-    
-    // Create nested platforms folder if necessary
-    await mkdir(path.dirname(fullPath), { recursive: true });
-
-    let formatted = content;
-    if (plugin.outputType === "markdown") {
-      formatted = await formatMd(content);
-    } else if (plugin.id === "article") {
-      formatted = await formatMdx(content);
-    } else if (plugin.outputType === "json") {
-      try {
-        const parsed = JSON.parse(content.replace(/```json|```/g, "").trim());
-        formatted = JSON.stringify(parsed, null, 2);
-      } catch {
-        formatted = content;
-      }
-    }
-
-    await writeFile(fullPath, formatted, "utf-8");
-    filesSaved.push(`published/${slug}/${relativePath}`);
-  }
-
-  // 2. Process and save generated diagram if present (Media Agent)
-  if (diagram) {
-    const mediaDir = path.join(ROOT, "public", "images", "articles", slug);
-    await mkdir(mediaDir, { recursive: true });
-    
-    const buffer = Buffer.from(diagram.base64, "base64");
-    await writeFile(path.join(mediaDir, diagram.name), buffer);
-    
-    // Also save diagram into the published/images bundle
-    const bundleImagesDir = path.join(bundleDir, "images");
-    await mkdir(bundleImagesDir, { recursive: true });
-    await writeFile(path.join(bundleImagesDir, diagram.name), buffer);
-
-    filesSaved.push(`published/${slug}/images/${diagram.name}`);
-  }
-
-  // 3. Save standard user-attached uploads
-  if (attachedImages.length > 0) {
-    const mediaDir = path.join(ROOT, "public", "images", "articles", slug);
-    await mkdir(mediaDir, { recursive: true });
-
-    const bundleImagesDir = path.join(bundleDir, "images");
-    await mkdir(bundleImagesDir, { recursive: true });
-
-    for (const img of attachedImages) {
-      const base64Data = img.dataUrl.split(",")[1];
-      const buffer = Buffer.from(base64Data, "base64");
-      
-      await writeFile(path.join(mediaDir, img.name), buffer);
-      await writeFile(path.join(bundleImagesDir, img.name), buffer);
-      filesSaved.push(`published/${slug}/images/${img.name}`);
-    }
-  }
-
-  return {
-    ok: true,
-    path: `published/${slug}/`,
-    filesSaved,
-  };
 }
 
 // -------------------------------------------------------------
