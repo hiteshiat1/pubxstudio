@@ -12,7 +12,12 @@ export default function AccountsPanel() {
   const [selectedId, setSelectedId] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [draft, setDraft] = useState<{ revisionId: string; accountId: string } | null>(null);
+  const [draft, setDraft] = useState<{ revisionId: string; accountId: string; contentSha256: string; body: string } | null>(null);
+  const [approval, setApproval] = useState<{ id: string; accountId: string; contentSha256: string; body: string; idempotencyKey: string } | null>(null);
+  const [scheduled, setScheduled] = useState<{ jobId: string; accountId: string; contentSha256: string; body: string } | null>(null);
+  const [localTime, setLocalTime] = useState("");
+  const [confirmLive, setConfirmLive] = useState(false);
+  const [confirmCost, setConfirmCost] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +55,7 @@ export default function AccountsPanel() {
 
   async function createDraft() {
     if (!workspace || !selected || !title.trim() || !body.trim()) return;
-    setBusy(true); setMessage(""); setDraft(null);
+    setBusy(true); setMessage(""); setDraft(null); setApproval(null); setScheduled(null);
     try {
       const response = await fetch(`/api/workspaces/${workspace.id}/content`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -58,7 +63,8 @@ export default function AccountsPanel() {
       });
       if (!response.ok) throw new Error();
       const result = await response.json();
-      setDraft({ revisionId: result.revision.id, accountId: selected.id });
+      setDraft({ revisionId: result.revision.id, accountId: selected.id,
+        contentSha256: result.revision.content_sha256, body });
       setMessage(`Draft saved for ${selected.display_name}. Review the text before approving.`);
     } catch { setMessage("Could not save the draft."); }
     finally { setBusy(false); }
@@ -75,8 +81,49 @@ export default function AccountsPanel() {
       if (!response.ok) throw new Error();
       const result = await response.json();
       setMessage(`Approved for ${accounts.find((account) => account.id === draft.accountId)?.display_name || "the selected account"}. Approval ID: ${result.approval.approvalId}. Scheduling is a separate step.`);
+      setApproval({ id: result.approval.approvalId, accountId: draft.accountId,
+        contentSha256: draft.contentSha256, body: draft.body, idempotencyKey: crypto.randomUUID() });
       setDraft(null);
     } catch { setMessage("Could not approve this draft. Check your role and account status."); }
+    finally { setBusy(false); }
+  }
+
+  async function scheduleApproved() {
+    if (!workspace || !approval || !localTime) return;
+    const date = new Date(localTime);
+    if (!Number.isFinite(date.getTime())) { setMessage("Choose a valid local date and time."); return; }
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch(`/api/workspaces/${workspace.id}/jobs`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvalId: approval.id, scheduledAt: date.toISOString(),
+          idempotencyKey: approval.idempotencyKey }),
+      });
+      if (!response.ok) throw new Error();
+      const result = await response.json();
+      setScheduled({ jobId: result.job.jobId, accountId: approval.accountId,
+        contentSha256: approval.contentSha256, body: approval.body });
+      setMessage("Job scheduled. A founder must confirm the exact destination and text before it can run.");
+    } catch { setMessage("Could not schedule this approval."); }
+    finally { setBusy(false); }
+  }
+
+  async function authorizeScheduled() {
+    if (!workspace || !scheduled || !confirmLive) return;
+    const account = accounts.find((item) => item.id === scheduled.accountId);
+    if (account?.provider === "x" && !confirmCost) return;
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch(`/api/workspaces/${workspace.id}/jobs/${scheduled.jobId}/authorize`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedAccountId: scheduled.accountId,
+          expectedContentSha256: scheduled.contentSha256, confirmLivePost: true,
+          confirmXCost: account?.provider === "x" ? true : false }),
+      });
+      if (!response.ok) throw new Error();
+      setMessage("Live job authorized. It will run only if the server worker and this provider are enabled.");
+      setScheduled(null); setApproval(null); setConfirmLive(false); setConfirmCost(false);
+    } catch { setMessage("Could not authorize this job. Review account, approval, and content status."); }
     finally { setBusy(false); }
   }
 
@@ -113,6 +160,23 @@ export default function AccountsPanel() {
         <button disabled={busy || !title.trim() || !body.trim()} onClick={createDraft}>Save draft for {selected.display_name}</button>
         {draft && (workspace.role === "founder" || workspace.role === "approver") &&
           <button disabled={busy} onClick={approveDraft}>Approve this exact revision for {accounts.find((account) => account.id === draft.accountId)?.display_name}</button>}
+      </div>}
+      {approval && <div style={{ display: "grid", gap: 8, maxWidth: 650, marginTop: 16 }}>
+        <strong>Schedule approved revision</strong>
+        <label htmlFor="approved-local-time">Local date and time ({Intl.DateTimeFormat().resolvedOptions().timeZone})</label>
+        <input id="approved-local-time" type="datetime-local" value={localTime} onChange={(event) => setLocalTime(event.target.value)} />
+        <button disabled={busy || !localTime || !!scheduled} onClick={scheduleApproved}>Schedule job</button>
+      </div>}
+      {scheduled && workspace.role === "founder" && <div style={{ display: "grid", gap: 8, maxWidth: 650, marginTop: 16 }}>
+        <strong>Founder live authorization</strong>
+        <span>Destination: {accounts.find((account) => account.id === scheduled.accountId)?.display_name}</span>
+        <span>Scheduled: {new Date(localTime).toLocaleString()}</span>
+        <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{scheduled.body}</pre>
+        <label><input type="checkbox" checked={confirmLive} onChange={(event) => setConfirmLive(event.target.checked)} /> I reviewed this exact text, destination, and time and authorize the live post.</label>
+        {accounts.find((account) => account.id === scheduled.accountId)?.provider === "x" &&
+          <label><input type="checkbox" checked={confirmCost} onChange={(event) => setConfirmCost(event.target.checked)} /> I approve the applicable X API posting charge.</label>}
+        <button disabled={busy || !confirmLive || (accounts.find((account) => account.id === scheduled.accountId)?.provider === "x" && !confirmCost)}
+          onClick={authorizeScheduled}>Authorize live job</button>
       </div>}
     </div>}
     {message && <p role="status">{message}</p>}
