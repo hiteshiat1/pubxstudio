@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start --port 3001",
     "db:migrate": "node db/migrate.mjs",
+    "worker:publish": "node scripts/publish-worker.mjs",
     "test:db": "node --test db/*.test.mjs",
     "test:linkedin": "node --test src/server/linkedin-*.test.mjs",
     "test:x": "node --test src/server/x-*.test.mjs"

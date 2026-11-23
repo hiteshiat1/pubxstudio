@@ -6,7 +6,7 @@ import { migrate } from '../../db/migrate.mjs';
 import { createSession } from '../../db/access.mjs';
 import { createCredentialStore } from '../../db/credentials.mjs';
 import { createContentItem, approveContentRevision, revokeContentApproval } from '../../db/content.mjs';
-import { schedulePublishJob, claimDuePublishJob } from '../../db/queue.mjs';
+import { schedulePublishJob, claimDuePublishJob, authorizePublishJob } from '../../db/queue.mjs';
 import { publishLinkedInMemberJob } from './linkedin-member.mjs';
 
 test('LinkedIn member job resolves a verified person ID and posts only a current approved revision', async (t) => {
@@ -33,6 +33,9 @@ test('LinkedIn member job resolves a verified person ID and posts only a current
     const schedule = async (key) => schedulePublishJob(client, session, { workspaceId, approvalId: approval.approvalId,
       scheduledAt: due, idempotencyKey: key });
     const first = await schedule('linkedin-first');
+    const authorize = (jobId) => authorizePublishJob(client, session, { workspaceId, jobId,
+      expectedAccountId: accountId, expectedContentSha256: item.revision.content_sha256, confirmLivePost: true });
+    await authorize(first.jobId);
     assert.equal((await claimDuePublishJob(client)).jobId, first.jobId);
     let calls = 0;
     const fetchImpl = async (endpoint, options) => {
@@ -48,6 +51,7 @@ test('LinkedIn member job resolves a verified person ID and posts only a current
       { providerPostId: 'urn:li:share:777', providerUrl: null });
     assert.equal(calls, 2);
     const second = await schedule('linkedin-second');
+    await authorize(second.jobId);
     assert.equal((await claimDuePublishJob(client)).jobId, second.jobId);
     let posted = false;
     await assert.rejects(publishLinkedInMemberJob({ client, jobId: second.jobId, actorId: founderId, env,

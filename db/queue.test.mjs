@@ -6,7 +6,7 @@ import { migrate } from './migrate.mjs';
 import { createSession } from './access.mjs';
 import { createCredentialStore } from './credentials.mjs';
 import { createContentItem, approveContentRevision } from './content.mjs';
-import { schedulePublishJob, cancelPublishJob, claimDuePublishJob, recoverExpiredPublishLeases, finishPublishJob, listPublishJobs } from './queue.mjs';
+import { schedulePublishJob, cancelPublishJob, claimDuePublishJob, recoverExpiredPublishLeases, finishPublishJob, listPublishJobs, authorizePublishJob } from './queue.mjs';
 
 test('durable queue schedules UTC jobs, claims once across workers, and recovers uncertain leases', async (t) => {
   const url = process.env.PUBX_TEST_DATABASE_URL;
@@ -41,6 +41,13 @@ test('durable queue schedules UTC jobs, claims once across workers, and recovers
     await assert.rejects(schedulePublishJob(client, founder, { ...data, scheduledAt: future }), /Idempotency key conflict/);
     const second = await schedulePublishJob(client, founder, { ...data, idempotencyKey: 'second-job' });
     const later = await schedulePublishJob(client, founder, { ...data, scheduledAt: future, idempotencyKey: 'later-job' });
+    assert.equal(await claimDuePublishJob(client), null);
+    const authorize = (jobId, token = founder) => authorizePublishJob(client, token, { workspaceId, jobId,
+      expectedAccountId: accountId, expectedContentSha256: item.revision.content_sha256, confirmLivePost: true });
+    await assert.rejects(authorize(first.jobId, outsider), /Access denied/);
+    await assert.rejects(authorizePublishJob(client, founder, { workspaceId, jobId: first.jobId,
+      expectedAccountId: accountId, expectedContentSha256: '0'.repeat(64), confirmLivePost: true }), /unavailable/);
+    await authorize(first.jobId); await authorize(second.jobId); await authorize(later.jobId);
     await assert.rejects(listPublishJobs(client, outsider, workspaceId), /Access denied/);
     assert.equal((await listPublishJobs(client, founder, workspaceId)).length, 3);
     const [a, b] = await Promise.all([claimDuePublishJob(client), claimDuePublishJob(worker)]);
