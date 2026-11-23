@@ -13,7 +13,7 @@ function classify(error) {
     return { outcome: 'uncertain', errorCode: 'provider_outcome_unknown' };
   }
   if (error?.code === 'RATE_LIMITED' || error?.code === 'rate_limited') {
-    return { outcome: 'failed', errorCode: 'rate_limited' };
+    return { outcome: 'failed', errorCode: 'rate_limited', retryAfterSeconds: error.retryAfterSeconds };
   }
   if (error?.code === 'AUTHORIZATION_FAILED') return { outcome: 'failed', errorCode: 'authorization_failed' };
   if (error?.code === 'PROVIDER_REJECTED' || error?.code === 'provider_rejected') {
@@ -41,8 +41,9 @@ export async function runOnePublishJob({ client, env = process.env, fetchImpl = 
       providerPostId: result.providerPostId, providerUrl: result.providerUrl });
     return { status: 'published', jobId: job.jobId };
   } catch (error) {
-    const { outcome, errorCode } = classify(error);
-    await finishPublishJob(client, { jobId: job.jobId, outcome, errorCode }).catch(() => {});
-    return { status: outcome, jobId: job.jobId };
+    const { outcome, errorCode, retryAfterSeconds } = classify(error);
+    const finished = await finishPublishJob(client, { jobId: job.jobId, outcome, errorCode,
+      retryAfterSeconds }).catch(() => null);
+    return { status: finished?.jobStatus || 'uncertain', jobId: job.jobId };
   }
 }

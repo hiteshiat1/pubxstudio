@@ -31,8 +31,8 @@ test('fresh install, upgrade, restart persistence, and constraints', async (t) =
     await client.end(); // A new process/connection must see durable records.
     client = new pg.Client({ connectionString: url });
     await client.connect();
-    assert.deepEqual(await migrate(url, { schema }), ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010']);
-    assert.deepEqual(await migrate(url, { schema }), ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010']);
+    assert.deepEqual(await migrate(url, { schema }), ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011']);
+    assert.deepEqual(await migrate(url, { schema }), ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011']);
     await client.query(`SET search_path TO "${schema}"`);
     assert.equal((await client.query('SELECT body FROM content_revisions WHERE id = $1', [revision])).rows[0].body, 'draft body');
     assert.equal((await client.query('SELECT status FROM publish_jobs WHERE id = $1', [job])).rows[0].status, 'pending');
