@@ -4,7 +4,7 @@ import { createCredentialStore } from '../../db/credentials.mjs';
 import { appOrigin } from './github-login.mjs';
 
 const CALLBACK_PATH = '/api/social/linkedin/callback';
-const SCOPES = 'openid profile w_member_social';
+const BASE_SCOPES = 'openid profile w_member_social';
 const hashState = (state) => createHash('sha256').update(state).digest('hex');
 
 function configuration(env) {
@@ -25,7 +25,8 @@ export async function startLinkedInOAuth({ client, sessionToken, workspaceId, en
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('client_id', clientId);
   url.searchParams.set('redirect_uri', redirectUri);
-  url.searchParams.set('scope', SCOPES);
+  url.searchParams.set('scope', env.PUBX_LINKEDIN_REQUEST_LITEPROFILE === '1'
+    ? `${BASE_SCOPES} r_liteprofile` : BASE_SCOPES);
   url.searchParams.set('state', state);
   return url.toString();
 }
