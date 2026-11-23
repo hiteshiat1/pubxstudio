@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { migrate } from './migrate.mjs';
-import { addMember, createSession, getSocialAccount, hashSessionToken, listWorkspaces, requireMembership, revokeSession, setMemberRole } from './access.mjs';
+import { addMember, createSession, getSocialAccount, hashSessionToken, listSocialAccounts, listWorkspaces, requireMembership, revokeSession, setMemberRole } from './access.mjs';
 import { completeGitHubLogin, startGitHubLogin } from '../src/server/github-login.mjs';
 
 test('sessions and roles enforce workspace and object isolation', async (t) => {
@@ -27,6 +27,9 @@ test('sessions and roles enforce workspace and object isolation', async (t) => {
     assert.equal((await q('SELECT token_hash FROM app_sessions')).rows[0].token_hash, hashSessionToken(founderSession.token));
     assert.equal((await listWorkspaces(client, founderSession.token))[0].id, ws1);
     assert.equal((await getSocialAccount(client, founderSession.token, ws1, account)).id, account);
+    assert.equal((await listSocialAccounts(client, founderSession.token, ws1))[0].id, account);
+    await assert.rejects(listSocialAccounts(client, founderSession.token, ws2), /Access denied/);
+    assert.ok(!JSON.stringify(await listSocialAccounts(client, founderSession.token, ws1)).includes('credential_ciphertext'));
     await assert.rejects(getSocialAccount(client, founderSession.token, ws2, account), /Account unavailable/);
     await assert.rejects(requireMembership(client, founderSession.token, ws2), /Access denied/);
     const member = await addMember(client, founderSession.token, ws1, 'github:202', 'operator');

@@ -71,11 +71,12 @@ export async function completeLinkedInOAuth({ client, sessionToken, state, code,
   await client.query('BEGIN');
   try {
     const account = await client.query(`INSERT INTO social_accounts
-      (workspace_id, provider, provider_account_id, display_name)
-      VALUES ($1, 'linkedin', $2, $3)
+      (workspace_id, provider, provider_account_id, display_name, granted_scopes)
+      VALUES ($1, 'linkedin', $2, $3, $4)
       ON CONFLICT (workspace_id, provider, provider_account_id)
-      DO UPDATE SET display_name = EXCLUDED.display_name RETURNING id`,
-    [workspaceId, profile.sub, displayName]);
+      DO UPDATE SET display_name = EXCLUDED.display_name, granted_scopes = EXCLUDED.granted_scopes RETURNING id`,
+    [workspaceId, profile.sub, displayName,
+      typeof token.scope === 'string' ? token.scope.split(/\s+/).filter(Boolean) : null]);
     const accountId = account.rows[0].id;
     await createCredentialStore(client, env).store({ workspaceId, accountId, actorId,
       accessToken: token.access_token, refreshToken: typeof token.refresh_token === 'string' ? token.refresh_token : null,

@@ -10,6 +10,7 @@ import {
 } from "../utils/llmClient";
 import { downloadZip } from "../utils/zip";
 import WorkspaceSession from "../components/WorkspaceSession";
+import AccountsPanel from "../components/AccountsPanel";
 import {
   PUBLISHING_PLUGINS,
   detectMoE,
@@ -848,6 +849,7 @@ Rules:
       
       {/* Header and settings buttons */}
       <WorkspaceSession />
+      <AccountsPanel />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 30 }}>
         <div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
