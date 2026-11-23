@@ -21,7 +21,7 @@ This checklist covers actions that require the founder's provider accounts, bill
 - [ ] Sign in to the [X Developer Portal](https://developer.x.com/) and confirm the project, app, and account that will own posts. Check the current write API availability, request limits, and pricing shown in your console. Prices and eligibility can change.
 - [ ] Decide whether to enable any paid access. **Do not buy credits or accept a charge solely for this checklist.** Record an explicit approved budget or “no spend approved” in issue #10.
 - [ ] In the app's user-authentication settings, enable OAuth 2.0 authorization code with PKCE and confirm the permissions needed for posting, identity lookup, and refresh if offered. Record the granted scopes by their exact names, not the requested names.
-- [ ] Once the X callback route is implemented, register its exact HTTPS production and staging URLs. Confirm the connecting X account owns the intended profile and that the callback works without sharing codes or tokens.
+- [ ] After you explicitly approve any API spend, register the exact production callback `${PUBX_APP_ORIGIN}/api/social/x/callback` (and a separate exact staging URL if used). Set server-only `PUBX_X_CLIENT_ID` and `PUBX_X_CLIENT_SECRET` in the deployment secret manager. Confirm `tweet.read tweet.write users.read offline.access` are available, then sign in as founder and open `/api/social/x/start?workspaceId=<your workspace UUID>`. Confirm the connected profile without sharing codes or tokens.
 - [ ] Record the nonsecret app/client ID, callback host/path, granted permissions, account handle, pricing/limit decision, and any access blocker in issue #10. Keep client secrets only in the deployment secret manager.
 
 ## 3. Hosting, secrets, and production acceptance — [issues #20](https://github.com/hiteshiat1/pubxstudio/issues/20) and [#21](https://github.com/hiteshiat1/pubxstudio/issues/21)
@@ -33,4 +33,4 @@ This checklist covers actions that require the founder's provider accounts, bill
 
 ## Current state
 
-The database schema, encrypted credential primitive, LinkedIn Posts API adapter, GitHub-backed workspace sessions, approval workflow, and LinkedIn member OAuth callback have been implemented. The login and LinkedIn developer apps still need founder configuration. The app does **not** yet offer a live publishing workflow or deployed worker. Do not treat a draft export or a mocked provider response as a live publication.
+The database schema, encrypted credential primitive, LinkedIn Posts API adapter, GitHub-backed workspace sessions, approval workflow, durable queue foundation, and LinkedIn/X OAuth callbacks have been implemented. The login and provider developer apps still need founder configuration. The app does **not** yet offer a live publishing workflow or deployed worker. Do not treat a draft export or a mocked provider response as a live publication.
