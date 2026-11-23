@@ -6,7 +6,7 @@ import { migrate } from '../../db/migrate.mjs';
 import { createSession } from '../../db/access.mjs';
 import { createCredentialStore } from '../../db/credentials.mjs';
 import { createContentItem, approveContentRevision } from '../../db/content.mjs';
-import { schedulePublishJob, authorizePublishJob } from '../../db/queue.mjs';
+import { schedulePublishJob, authorizePublishJob, reconcilePublishJob } from '../../db/queue.mjs';
 import { runOnePublishJob } from './publish-worker.mjs';
 
 test('worker requires founder job authorization and provider flags, records confirmed and uncertain outcomes', async (t) => {
@@ -58,6 +58,40 @@ test('worker requires founder job authorization and provider flags, records conf
     assert.equal((await client.query('SELECT status FROM publish_jobs WHERE id = $1', [second.jobId])).rows[0].status, 'uncertain');
     assert.deepEqual(await runOnePublishJob({ client, env, fetchImpl }), { status: 'idle' });
     assert.equal(calls, 1);
+    await assert.rejects(reconcilePublishJob(client, session, { workspaceId, jobId: second.jobId,
+      action: 'confirmed_published', providerPostId: 'bad', evidence: 'Verified in the provider timeline' }), /Invalid provider post ID/);
+    assert.deepEqual(await reconcilePublishJob(client, session, { workspaceId, jobId: second.jobId,
+      action: 'confirmed_published', providerPostId: '987654', evidence: 'Verified exact post in provider timeline' }),
+      { jobId: second.jobId, status: 'published' });
+    await assert.rejects(reconcilePublishJob(client, session, { workspaceId, jobId: second.jobId,
+      action: 'confirmed_absent', evidence: 'Verified absent in provider timeline' }), /Uncertain job unavailable/);
+    const third = await schedule('worker-third');
+    await authorizePublishJob(client, session, { workspaceId, jobId: third.jobId,
+      expectedAccountId: accountId, expectedContentSha256: item.revision.content_sha256,
+      confirmLivePost: true, confirmXCost: true });
+    assert.equal((await runOnePublishJob({ client, env, fetchImpl: async () => ({ ok: false, status: 429,
+      headers: { get: () => '120' } }) })).status, 'pending');
+    const retry = (await client.query('SELECT status, next_attempt_at FROM publish_jobs WHERE id = $1', [third.jobId])).rows[0];
+    assert.equal(retry.status, 'pending');
+    assert.ok(new Date(retry.next_attempt_at) > new Date());
+    assert.deepEqual(await runOnePublishJob({ client, env, fetchImpl }), { status: 'idle' });
+    await client.query("UPDATE publish_jobs SET next_attempt_at = now() - interval '1 second' WHERE id = $1", [third.jobId]);
+    assert.equal((await runOnePublishJob({ client, env, fetchImpl })).status, 'published');
+    assert.equal(calls, 2);
+    const retryAttempts = (await client.query('SELECT attempt_number, status FROM publish_attempts WHERE job_id = $1 ORDER BY attempt_number', [third.jobId])).rows;
+    assert.deepEqual(retryAttempts, [{ attempt_number: 1, status: 'failed' }, { attempt_number: 2, status: 'published' }]);
+    const fourth = await schedule('worker-fourth');
+    await authorizePublishJob(client, session, { workspaceId, jobId: fourth.jobId,
+      expectedAccountId: accountId, expectedContentSha256: item.revision.content_sha256,
+      confirmLivePost: true, confirmXCost: true });
+    assert.equal((await runOnePublishJob({ client, env, fetchImpl: async () => { throw new Error('timeout'); } })).status, 'uncertain');
+    assert.deepEqual(await reconcilePublishJob(client, session, { workspaceId, jobId: fourth.jobId,
+      action: 'confirmed_absent', evidence: 'Verified no matching post in the X account timeline' }),
+      { jobId: fourth.jobId, status: 'pending' });
+    assert.equal((await runOnePublishJob({ client, env, fetchImpl })).status, 'published');
+    const events = (await client.query('SELECT action FROM reconciliation_events WHERE workspace_id = $1 ORDER BY happened_at', [workspaceId])).rows;
+    assert.deepEqual(new Set(events.map((event) => event.action)), new Set(['confirmed_published', 'confirmed_absent']));
+    await assert.rejects(client.query("DELETE FROM reconciliation_events WHERE workspace_id = $1", [workspaceId]), { code: 'P0001' });
   } finally {
     await client.query('SET search_path TO public').catch(() => {});
     await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`).catch(() => {});

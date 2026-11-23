@@ -6,7 +6,7 @@ import { migrate } from '../../db/migrate.mjs';
 import { createSession } from '../../db/access.mjs';
 import { createCredentialStore } from '../../db/credentials.mjs';
 import { createContentItem, approveContentRevision } from '../../db/content.mjs';
-import { schedulePublishJob, claimDuePublishJob, authorizePublishJob } from '../../db/queue.mjs';
+import { schedulePublishJob, claimDuePublishJob, authorizePublishJob, finishPublishJob, reconcilePublishJob } from '../../db/queue.mjs';
 import { parseXThread, prepareXThread, sendXThreadJob } from './x-thread.mjs';
 
 test('X thread records IDs and reply links, resumes published prefix, and stops on uncertainty', async (t) => {
@@ -74,6 +74,20 @@ test('X thread records IDs and reply links, resumes published prefix, and stops 
     assert.equal(attempted, 2);
     const secondParts = (await client.query('SELECT status, provider_post_id FROM x_thread_parts WHERE job_id = $1 ORDER BY part_number', [second.jobId])).rows;
     assert.deepEqual(secondParts.map((part) => part.status), ['published', 'uncertain', 'pending']);
+    await finishPublishJob(client, { jobId: second.jobId, outcome: 'uncertain', errorCode: 'provider_outcome_unknown' });
+    assert.deepEqual(await reconcilePublishJob(client, session, { workspaceId, jobId: second.jobId,
+      action: 'confirmed_published', providerPostId: '555', evidence: 'Verified the second post in X timeline' }),
+      { jobId: second.jobId, status: 'pending' });
+    assert.equal((await claimDuePublishJob(client)).jobId, second.jobId);
+    let resumedCalls = 0;
+    const resumed = await sendXThreadJob({ client, jobId: second.jobId, actorId: founderId, env,
+      fetchImpl: async (_url, options) => {
+        resumedCalls++;
+        assert.deepEqual(JSON.parse(options.body), { text: 'three', reply: { in_reply_to_tweet_id: '555' } });
+        return { ok: true, status: 201, json: async () => ({ data: { id: '666' } }) };
+      } });
+    assert.equal(resumed.providerPostId, '666');
+    assert.equal(resumedCalls, 1);
   } finally {
     await client.query('SET search_path TO public').catch(() => {});
     await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`).catch(() => {});

@@ -86,7 +86,8 @@ export async function sendXThreadJob({ client, jobId, actorId, env = process.env
       post = await publishXPost({ text: next.text, accessToken, replyToId: next.parentId,
         accountId: thread.providerAccountId, fetchImpl });
     } catch (error) {
-      const status = error?.outcome === 'uncertain' ? 'uncertain' : 'failed';
+      const status = error?.outcome === 'uncertain' ? 'uncertain'
+        : error?.outcome === 'retryable' ? 'pending' : 'failed';
       await client.query(`UPDATE x_thread_parts SET status = $4, error_code = $5, finished_at = now()
         WHERE workspace_id = $1 AND job_id = $2 AND part_number = $3 AND status = 'sending'`,
       [thread.workspaceId, jobId, next.number, status, error?.code || 'provider_outcome_unknown']);
