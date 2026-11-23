@@ -33,4 +33,4 @@ This checklist covers actions that require the founder's provider accounts, bill
 
 ## Current state
 
-The database schema, encrypted credential primitive, LinkedIn Posts API adapter, GitHub-backed workspace sessions, approval workflow, durable queue foundation, and LinkedIn/X OAuth callbacks have been implemented. The login and provider developer apps still need founder configuration. The app does **not** yet offer a live publishing workflow or deployed worker. Do not treat a draft export or a mocked provider response as a live publication.
+The database schema, encrypted credential primitive, LinkedIn and X text-post adapters, GitHub-backed workspace sessions, approval workflow, durable queue foundation, and LinkedIn/X OAuth callbacks have been implemented. The login and provider developer apps still need founder configuration. The app does **not** yet offer a live publishing workflow or deployed worker. Do not treat a draft export or a mocked provider response as a live publication.
