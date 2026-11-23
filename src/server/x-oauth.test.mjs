@@ -65,6 +65,8 @@ test('X PKCE state, identity, reconnect, refresh rotation, and denial', async (t
     const vault = createCredentialStore(client, env);
     const vaultArgs = { workspaceId, accountId: connected.accountId, actorId: founderId };
     assert.deepEqual(await vault.read(vaultArgs), { accessToken: 'access-1', refreshToken: 'refresh-1' });
+    assert.deepEqual((await client.query('SELECT granted_scopes FROM social_accounts WHERE id = $1', [connected.accountId])).rows[0].granted_scopes,
+      ['tweet.read', 'tweet.write', 'users.read', 'offline.access']);
     assert.equal((await client.query('SELECT pkce_verifier FROM oauth_pending WHERE state_hash = $1',
       [createHash('sha256').update(state).digest('hex')])).rows[0].pkce_verifier, null);
     await refreshXCredential({ client, sessionToken: founder, workspaceId, accountId: connected.accountId, env, fetchImpl });

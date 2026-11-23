@@ -27,7 +27,6 @@ export default function WorkspaceSession() {
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span>{workspaces[0].name} · {workspaces[0].role}</span>
-        {workspaces[0].role === "founder" && <a href={`/api/social/linkedin/start?workspaceId=${encodeURIComponent(workspaces[0].id)}`}>Connect LinkedIn</a>}
         <form action="/api/auth/logout" method="post"><button type="submit">Sign out</button></form>
       </div>
       {jobs.length > 0 && <details style={{ marginTop: 8 }}>

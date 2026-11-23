@@ -47,7 +47,7 @@ export async function getSocialAccount(client, token, workspaceId, accountId) {
   const hash = hashSessionToken(token);
   if (!hash) throw new Error('Access denied');
   const result = await client.query(`SELECT a.id, a.workspace_id, a.provider, a.provider_account_id,
-      a.display_name, a.status, a.token_expires_at
+      a.display_name, a.status, a.token_expires_at, a.granted_scopes
     FROM social_accounts a
     JOIN memberships m ON m.workspace_id = a.workspace_id
     JOIN app_sessions s ON s.user_id = m.user_id
@@ -55,6 +55,14 @@ export async function getSocialAccount(client, token, workspaceId, accountId) {
       AND a.workspace_id = $2 AND a.id = $3`, [hash, workspaceId, accountId]);
   if (result.rowCount !== 1) throw new Error('Account unavailable');
   return result.rows[0];
+}
+
+export async function listSocialAccounts(client, token, workspaceId) {
+  await requireMembership(client, token, workspaceId);
+  const result = await client.query(`SELECT id, workspace_id, provider, provider_account_id,
+      display_name, status, token_expires_at, granted_scopes
+    FROM social_accounts WHERE workspace_id = $1 ORDER BY provider, display_name, id`, [workspaceId]);
+  return result.rows;
 }
 
 export async function setMemberRole(client, token, workspaceId, targetUserId, role) {
